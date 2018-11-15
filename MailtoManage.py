@@ -11,8 +11,12 @@ from datetime import datetime
 from tkinter import *
 from tkinter import ttk
 
-FILENAME = "emaildata.json"
-VERSION = "0.2"
+FILENAME = "emaildata_v2.json"
+LOOKUPTABLE_FILE = "emaildata_lookup.json"
+VERSION = "0.3"
+# v0.3
+# Adds support to hashed email addresses in emaildata_v2.json
+#
 # v0.2
 # Includes functions for validations of email addresses in the emaildata.json file
 #   - validates that all email addresses are the same (if used in more than one email group).
@@ -46,20 +50,21 @@ class MailtoManage:
         self.emailaddressheaders = []
         self.EmailGroupAddress_hashlist = []
         self.readfile(FILENAME)
-        
+        self.email_lookup_table = mailto.mailto.ReadJSONfile(self, LOOKUPTABLE_FILE)
+
         if (self.validatefile(FILENAME)): 
             print("Email Data file integrity: OK")
         else:
             # Automatically Generate Signature JSON file
             self.generateSignatureJSONfile()
-            print("Generated new Email Group Signature File, please start again")
-            sys.exit(2)
+            print("FYI: Generated new Email Group Signature File")
+            # sys.exit(2)
 
         ## All good, display GUI. 
         self.mygui = Tk()
         self.mygui.focus_force()
         self.setupGUI()
-
+        
     def generateSignatureJSONfile(self):
         # Read the EmailData.json file,
         # Regenerate the Email Signature JSON object
@@ -77,6 +82,7 @@ class MailtoManage:
                 
 
     def readfile(self, filename):
+        self.emailaddressheaders = [] # reset
         self.data = mailto.mailto.ReadJSONfile(self, filename)       
         for k, v in self.data.items():
             self.emailaddressheaders.append(k)
@@ -126,7 +132,7 @@ class MailtoManage:
                     sys.exit(2)
                     
                 # Uncomment below line to display generated Email Group Hashes()
-                #self.printJSONobjectlist(self.Generated_EmailDetails_list) 
+                self.printJSONobjectlist(self.Generated_EmailDetails_list) 
 
         else:
             print(JSONfilename +" cannot be found. Generating hashes for: " + filename)
@@ -172,6 +178,14 @@ class MailtoManage:
         # Button To Contacts Apply
         button_template= ttk.Button(frame_Header, text = "Save Changes", width = 20,command = lambda: self.handleButtonPress('__selected_save_changes__'))                                             
         button_template.pack(side=LEFT, padx=5,pady=5)
+
+        # Button Refresh Email Groups
+        button_refresh= ttk.Button(frame_Header, text = "Refresh", width = 20,command = lambda: self.handleButtonPress('__refresh_groups__'))                                             
+        button_refresh.pack(side=LEFT, padx=5,pady=5)
+        
+        # Button Delete Email Groups
+        button_refresh= ttk.Button(frame_Header, text = "Delete Email Group", width = 20,command = lambda: self.handleButtonPress('__delete_group__'))                                             
+        button_refresh.pack(side=LEFT, padx=5,pady=5)        
         
         # Need to use .pack() for scrollbar and text widget
         frame_textarea = ttk.Labelframe(self.mygui, text="Email Details")
@@ -191,10 +205,16 @@ class MailtoManage:
         self.mygui.mainloop()
     
     def handleComboBoxchanges(self, event):
+        self.RefreshEmailGroups() 
+        
         self.text_Addresses.delete(1.0, END)
         _UserChoice = self.combobox_box_EmailAddress.get()
-    
+        email_lookup_table = mailto.mailto.ReadJSONfile(self, LOOKUPTABLE_FILE)
+
+        # print(json.dumps(email_lookup_table, sort_keys=True, indent=4, separators=(',',':'))) # write to disk. 
+        
         for entry in self.data.get(_UserChoice):
+            entry = email_lookup_table[entry]
             self.text_Addresses.insert(END, entry.rstrip(" ").rstrip(";")+"\n")
     
     def Backup_EmailFile(self, fname):
@@ -213,7 +233,7 @@ class MailtoManage:
         return(0)
         
     def handleButtonPress(self, input):
-        self.readfile(FILENAME)
+        self.RefreshEmailGroups()         
         
         if self.Backup_EmailFile(FILENAME) == 0:
             print("Automatically saving a backup of last: " + FILENAME)
@@ -224,41 +244,79 @@ class MailtoManage:
             updated_addr = self.text_Addresses.get(1.0, 'end-1c').split("\n")
             updated_addr = [x for x in updated_addr if x !=''] # remove empty strings. 
 
-            # Validate Email Strings: 
-                        
             # Update the record. 
-            _UserChoice_key = self.combobox_box_EmailAddress.get()
+            choice_email_group = self.combobox_box_EmailAddress.get()
 
             # 2. Create new Dict Entry for Manufacturer & Replace dictionary entry with new version
             # Verify if user choice already exists if so continue otherwise, 
             # Present an option to create a new Email Group
-            self.data[_UserChoice_key] = updated_addr
-            
-            # 4. Save to disk. 
-            print('Saving changes to json file: ' + FILENAME)
-            with open(FILENAME, 'w') as json_file: #over-write file
-                json.dump(self.data, json_file, sort_keys=True, indent=4, separators=(',',':')) # write to disk. 
+                       
+            hashed_addr_list = list() 
+            for address in updated_addr: 
+                # clean email address: 
+                address = re.sub(';', '', address.lower()) # remove semicolons and tolower() 
+                # filter out just email address
+                match = re.findall(r'[\w\.-]+@[\w\.-]+', address)                 
 
+                hashed_email_address = hashlib.sha256(str(match[0]).encode('utf-8')).hexdigest() # use SHA1 hashes and save this 
+                print(match[0], hashed_email_address)
+                hashed_addr_list.append(hashed_email_address)
+                
+                # Update lookup table. 
+                self.email_lookup_table[hashed_email_address] = match[0]
+
+            # remove duplicate email addresses          
+            self.data[choice_email_group] = list(set(hashed_addr_list))
+                            
+            # 4. Save to disk. 
+            self.SaveDatatoDisk()         
+                
             # Update the Email Signature JSON file
             # Read the EmailData.json file,
             # Regenerate the Email Signature JSON object
             # Overwrite the previous signature json file with the new version.
 
             self.generateSignatureJSONfile()
-
-        self.readfile(FILENAME)
+        
+        elif input == '__refresh_groups__':
+            self.RefreshEmailGroups() 
             
+        elif input == '__delete_group__': 
+            choice_email_group = self.combobox_box_EmailAddress.get()
+            userChoice = messagebox.askokcancel("Warning! Deleting Email Groups!", "Are you sure you want to remove " + choice_email_group + "?")
+            if userChoice:
+                del self.data[choice_email_group] 
+                self.SaveDatatoDisk()      
+                self.RefreshEmailGroups() 
+                self.generateSignatureJSONfile()
+
+    def SaveDatatoDisk(self): 
+        with open(FILENAME, 'w') as json_file: #over-write file
+            json.dump(self.data, json_file, sort_keys=True, indent=4, separators=(',',':')) # write to disk. 
+
+        with open(LOOKUPTABLE_FILE, 'w+') as lookup_json_file: 
+            json.dump(self.email_lookup_table, lookup_json_file, sort_keys=True, indent=4, separators=(',',':')) # write to disk. 
+                
+    def RefreshEmailGroups(self):
+        self.readfile(FILENAME)
+        self.combobox_box_EmailAddress['values'] = sorted(self.emailaddressheaders)
+        
     # Joins a string with commas.        
     def formatEmailAddress(self, str):
         return(','.join(shlex.split(str)))
+
 
 PASSWORD = ''
 def getpwd():
     global PASSWORD
     
     root = Tk()
-    root.wm_title("Correct Priviledges Required")
-    pwdbox = Entry(root, show = '*')
+    root.wm_title("MailtoManage.py: Correct Priviledges Required")
+    pwdbox = Entry(root, show = '*', width=40, font=("Arial", 18))
+    
+    def disable_event(): 
+        pass
+    
     def onpwdentry(evt):
          global PASSWORD
          PASSWORD = pwdbox.get()
@@ -267,11 +325,13 @@ def getpwd():
          global PASSWORD
          PASSWORD = pwdbox.get()
          root.destroy()
-    Label(root, text = 'Enter Password:', width=80).pack(side = 'top')
-
+    Label(root, text = 'Changing Email Groups now requires a Password:', width=40, font=("Arial", 18)).pack(side = 'top')
+    
     pwdbox.pack(side = 'top')
     pwdbox.bind('<Return>', onpwdentry)
     Button(root, command=onokclick, text = 'OK').pack(side = 'top')
+
+    root.protocol("WM_DELETE_WINDOW", disable_event)
 
     root.mainloop()
     return PASSWORD
@@ -285,7 +345,7 @@ def main():
 
         #m = hashlib.sha256(getpwd().encode())
         #hashlist_emailAddress_list.append(m.hexdigest())
-        # print("password entered is: " + password)
+        #print("password entered is: " + password)
 
         # Blank password: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
         # My Password: 63f6a3533a1d65ea4cc016ef2371c09bce7a00b3d4495e2cf6eec18d4083e1f0
