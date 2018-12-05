@@ -26,7 +26,7 @@ i.e. the addressee isn't exactly a client.
 ## Creating new "Templates"
 
 Best way of creating a template is to copy a new one, and replace the contents with 
-the appropriate changes. 
+the appropriate changes using the TemplateEditor.py script.  
 
 ## Restrictions with Creating New Templates
     1. The first word of the file name, will indicate where the template can be used. 
