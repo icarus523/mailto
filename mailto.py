@@ -136,8 +136,12 @@ class mailto:
         for item in template_file_list:
             if item.startswith(keyword):
                 output_file_list.append(item)
-            
-        return output_file_list
+
+        sorted_filelist = list() # need to sort list in this way
+        for file in sorted(list(set(output_file_list))): 
+            sorted_filelist.append(file)
+                
+        return sorted_filelist
             
     def readEmailTemplate(self, template_filename):
         template = ''
