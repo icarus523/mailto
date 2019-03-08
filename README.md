@@ -158,6 +158,6 @@ Use the MailtoManage.py script to remove an Email Address:
 Use the MailtoManage.py script to add an Email Address to an email group: 
 
 * Select the Email Group that you want the user to be part of. 
-* Add email address from the Email Group, note that the script will strip out unnecessary strings of characters which do not form part of an email address in the following format: `username@domain`
+* Add the email address into the Email Group, note that the script will strip out unnecessary strings of characters which do not form part of an email address in the following format: `username@domain`
 * Click `Save Changes` and `Refresh` buttons
 * Confirm that the addition of the email address has been made
