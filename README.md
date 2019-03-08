@@ -148,9 +148,16 @@ Use the MailtoManage.py script:
 
 If a person's email address is no longer being used (i.e. left their company), they should be removed using the MailtoManage.py script using the following method: 
 
-Use the MailtoManage.py script: 
+Use the MailtoManage.py script to remove an Email Address: 
 
 * Select the Email Group that the user exists in. 
 * Remove email address from the Email Group 
 * Click `Save Changes` and `Refresh` buttons
 * Repeat for any other email groups the email address might be part of
+
+Use the MailtoManage.py script to add an Email Address to an email group: 
+
+* Select the Email Group that you want the user to be part of. 
+* Add email address from the Email Group, note that the script will strip out unnecessary strings of characters which do not form part of an email address in the following format: `username@domain`
+* Click `Save Changes` and `Refresh` buttons
+* Confirm that the addition of the email address has been made
