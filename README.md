@@ -18,6 +18,10 @@ Hashing of Email Groups for added security has also been added to prevent unauth
 
 You just double-click the mailto.py file and provided your Operating System is configured to launch python scripts a GUI will be presented to you. 
 
+Otherwise in Windows type: 
+````
+py mailto.py
+````
 Follow the "Quick HOWTO" instructions described above the screen.  
 
 The "tabs": "EGM", "Systems" and "Other" represents the workflow of email templates Note: The "Other" tab is for email templates, which doesn't fit with either EGM/Systems. 
@@ -27,6 +31,8 @@ i.e. the addressee isn't exactly a client.
 
 Best way of creating a template is to copy a new one, and replace the contents with 
 the appropriate changes using the TemplateEditor.py script.  
+
+Otherwise use the `TemplateEditor.py` script and design the template. This allows you to set email subject and body. 
 
 ## Restrictions with Creating New Templates
     1. The first word of the file name, will indicate where the template can be used. 
@@ -90,7 +96,7 @@ the appropriate changes using the TemplateEditor.py script.
 ## Managing Email Group (Adding/Removing Email Addresses to Email Groups):
 
 Use the built in tool for "Manage Group Emails". 
-For added security the email use of the "MailtoManage.py" is now password protected, this is to ensure that only Authorised users are capable of changing email groups. To add new passwords, you need to modify the MailtoManage.py script and add the result of the following python3 code to the `valid_password` list variable.: 
+For added security the use of the "MailtoManage.py" is now password protected, this is to ensure that only Authorised users are capable of changing email groups. To add new passwords, you need to modify the MailtoManage.py script and add the result of the following python3 code to the `valid_password` list variable.: 
 
 ```
 clear_text_password = "supersecret2018!"
@@ -119,4 +125,4 @@ Tips: If you want the email groups to be available in the EGM/Systems Tab window
 
 ## Removing an Exisiting Email Group
 
-Use the MailtoManage.py script: Select the Email Group you want to remove. Press "Delete Email Group". 
+Use the MailtoManage.py script: Select the Email Group you want to remove. Press `Delete Email Group` button. Press `Refresh` Button to confirm that the email group has been removed. 
