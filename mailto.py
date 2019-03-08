@@ -2,7 +2,9 @@
 
 import webbrowser
 import json
-import os, sys
+import os
+import sys
+import subprocess
 import MailtoManage
 import TemplateEditor
 import tkinter as tk
@@ -101,7 +103,11 @@ class mailto:
         TemplateEditor.TemplateEditor()
 
     def MenuBar_Manage_EmailGroup(self):
-        MailtoManage.MailtoManage()
+        # MailtoManage.MailtoManage()
+        if os.name == 'nt': 
+            subprocess.Popen(['py.exe', 'MailtoManage.py'])
+        elif os.name == 'posix': 
+            subprocess.Popen(['python3', 'MailtoManage.py'])        
 
     def Backup_EmailFile(self):
         if (os.path.isfile(self.filename)): 

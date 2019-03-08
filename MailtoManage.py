@@ -13,7 +13,13 @@ from tkinter import ttk
 
 FILENAME = "emaildata_v2.json"
 LOOKUPTABLE_FILE = "emaildata_lookup.json"
-VERSION = "0.3"
+VERSION = "0.4"
+
+VALID_PASSWORDS = ["63f6a3533a1d65ea4cc016ef2371c09bce7a00b3d4495e2cf6eec18d4083e1f0", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"]
+
+# v0.4
+# Adds password protection to class as opposed to script
+
 # v0.3
 # Adds support to hashed email addresses in emaildata_v2.json
 #
@@ -41,29 +47,92 @@ VERSION = "0.3"
 ##	}]
 ##}
 
+class GetPwd:
+
+    def __init__(self): 
+        self.my_root = Tk()
+        self.my_root.wm_title("MailtoManage.py: Correct Priviledges Required")
+        self.pwdbox = Entry(self.my_root, show = '*', width=40, font=("Arial", 18))
+
+        Label(self.my_root, text = 'Changing Email Groups now requires a Password:', width=40, font=("Arial", 18)).pack(side = 'top')
+        
+        self.pwdbox.pack(side = 'top')
+        self.pwdbox.bind('<Return>', self.onpwdentry)
+        Button(self.my_root, command=self.onokclick, text = 'OK', width=10, padx=3, pady=3).pack(side = 'top')
+
+        self.my_root.protocol("WM_DELETE_WINDOW", self.disable_event)
+
+        self.my_root.mainloop()
+
+    def disable_event(self): 
+        pass
+    
+    def onpwdentry(self, evt):
+        self.password = self.pwdbox.get()
+        self.my_root.destroy()
+    
+    def onokclick(self):
+        self.password = self.pwdbox.get()
+        self.my_root.destroy()
+    
+    def get(self): 
+        return self.password
+        
 class MailtoManage:
 
     # Constructor
     def __init__(self):
+                
+        if self.authorise(): 
         
-        self.data = ''
-        self.emailaddressheaders = []
-        self.EmailGroupAddress_hashlist = []
-        self.readfile(FILENAME)
-        self.email_lookup_table = mailto.mailto.ReadJSONfile(self, LOOKUPTABLE_FILE)
+            self.data = ''
+            self.emailaddressheaders = []
+            self.EmailGroupAddress_hashlist = []
+            self.readfile(FILENAME)
+            self.email_lookup_table = mailto.mailto.ReadJSONfile(self, LOOKUPTABLE_FILE)
 
-        if (self.validatefile(FILENAME)): 
-            print("Email Data file integrity: OK")
-        else:
-            # Automatically Generate Signature JSON file
-            self.generateSignatureJSONfile()
-            print("FYI: Generated new Email Group Signature File")
-            # sys.exit(2)
+            if (self.validatefile(FILENAME)): 
+                print("Email Data file integrity: OK")
+            else:
+                # Automatically Generate Signature JSON file
+                self.generateSignatureJSONfile()
+                print("FYI: Generated new Email Group Signature File")
+                # sys.exit(2)
 
-        ## All good, display GUI. 
-        self.mygui = Tk()
-        self.mygui.focus_force()
-        self.setupGUI()
+            ## All good, display GUI. 
+            self.mygui = Tk()
+            self.mygui.focus_force()
+            self.setupGUI()
+        else: 
+            sys.exit("Incorrect Password, terminating...")
+
+    def authorise(self): 
+        pass_try = 0
+        x = 3
+        
+        while pass_try < x:
+            getpwd = GetPwd()
+            
+            password = hashlib.sha256(getpwd.get().encode()).hexdigest()
+
+            #m = hashlib.sha256(getpwd().encode())
+            #hashlist_emailAddress_list.append(m.hexdigest())
+            #print("password entered is: " + password)
+
+            # Blank password: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+            # My Password: 63f6a3533a1d65ea4cc016ef2371c09bce7a00b3d4495e2cf6eec18d4083e1f0
+           
+            if password in VALID_PASSWORDS: 
+                pass_try = x+1
+            else:
+                pass_try += 1
+                print("Incorrect Password!", "Invalid Password entered. " + str(x-pass_try) + " more attempts left. \nRefer to James Aceret (3872 0804) for help on this issue.")
+
+        if pass_try == x:
+            return False
+
+        print("User password valid.")
+        return True
         
     def generateSignatureJSONfile(self):
         # Read the EmailData.json file,
@@ -306,62 +375,32 @@ class MailtoManage:
         return(','.join(shlex.split(str)))
 
 
-PASSWORD = ''
-def getpwd():
-    global PASSWORD
-    
-    root = Tk()
-    root.wm_title("MailtoManage.py: Correct Priviledges Required")
-    pwdbox = Entry(root, show = '*', width=40, font=("Arial", 18))
-    
-    def disable_event(): 
-        pass
-    
-    def onpwdentry(evt):
-         global PASSWORD
-         PASSWORD = pwdbox.get()
-         root.destroy()
-    def onokclick():
-         global PASSWORD
-         PASSWORD = pwdbox.get()
-         root.destroy()
-    Label(root, text = 'Changing Email Groups now requires a Password:', width=40, font=("Arial", 18)).pack(side = 'top')
-    
-    pwdbox.pack(side = 'top')
-    pwdbox.bind('<Return>', onpwdentry)
-    Button(root, command=onokclick, text = 'OK').pack(side = 'top')
-
-    root.protocol("WM_DELETE_WINDOW", disable_event)
-
-    root.mainloop()
-    return PASSWORD
-
 def main():
-    pass_try = 0
-    x = 3
+    # pass_try = 0
+    # x = 3
 
-    while pass_try < x:
-        password = hashlib.sha256(getpwd().encode()).hexdigest()
+    # while pass_try < x:
+        # password = hashlib.sha256(getpwd().encode()).hexdigest()
 
-        #m = hashlib.sha256(getpwd().encode())
-        #hashlist_emailAddress_list.append(m.hexdigest())
-        #print("password entered is: " + password)
+        # #m = hashlib.sha256(getpwd().encode())
+        # #hashlist_emailAddress_list.append(m.hexdigest())
+        # #print("password entered is: " + password)
 
-        # Blank password: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-        # My Password: 63f6a3533a1d65ea4cc016ef2371c09bce7a00b3d4495e2cf6eec18d4083e1f0
+        # # Blank password: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+        # # My Password: 63f6a3533a1d65ea4cc016ef2371c09bce7a00b3d4495e2cf6eec18d4083e1f0
 
-        valid_passwords = ["63f6a3533a1d65ea4cc016ef2371c09bce7a00b3d4495e2cf6eec18d4083e1f0", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"]
+        # valid_passwords = ["63f6a3533a1d65ea4cc016ef2371c09bce7a00b3d4495e2cf6eec18d4083e1f0", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"]
         
-        if password in valid_passwords: 
-            pass_try = x+1
-        else:
-            pass_try += 1
-            print("Incorrect Password!", "Invalid Password entered. " + str(x-pass_try) + " more attempts left. \nRefer to James Aceret (3872 0804) for help on this issue.")
+        # if password in valid_passwords: 
+            # pass_try = x+1
+        # else:
+            # pass_try += 1
+            # print("Incorrect Password!", "Invalid Password entered. " + str(x-pass_try) + " more attempts left. \nRefer to James Aceret (3872 0804) for help on this issue.")
 
-    if pass_try == x:
-        sys.exit("Incorrect Password, terminating...")
+    # if pass_try == x:
+        # sys.exit("Incorrect Password, terminating...")
 
-    print("User password valid.")
+    # print("User password valid.")
     app = MailtoManage()
       
 
