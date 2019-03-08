@@ -121,7 +121,7 @@ Further more, the email database file (emaildata_v2.json), is also now signed fo
     },
 ```
 
-### Important: Do not attempt to edit any of the JSON files used, unless you know what your doing as any errors will prevent the script from functioning correctly. This is the reason why hashing of email groups, email addresses and password restrictions has been implemented. 
+### Important: Do not attempt to edit any of the JSON files used, unless you know what you're doing as any errors will prevent the script from functioning correctly. This is the reason why hashing of email groups, email addresses and password restrictions has been implemented. 
 
 ## Adding a New Email Group. 
 
