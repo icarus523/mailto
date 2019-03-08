@@ -100,10 +100,13 @@ class mailto:
         self.root.mainloop()    
 
     def Launch_TemplateEditor(self):
-        TemplateEditor.TemplateEditor()
-
+        if os.name == 'nt': 
+            subprocess.Popen(['py.exe', 'TemplateEditor.py'])
+        elif os.name == 'posix': 
+            subprocess.Popen(['python3', 'TemplateEditor.py'])        
+        
+        
     def MenuBar_Manage_EmailGroup(self):
-        # MailtoManage.MailtoManage()
         if os.name == 'nt': 
             subprocess.Popen(['py.exe', 'MailtoManage.py'])
         elif os.name == 'posix': 

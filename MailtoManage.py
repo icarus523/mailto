@@ -14,7 +14,7 @@ from tkinter import ttk
 FILENAME = "emaildata_v2.json"
 LOOKUPTABLE_FILE = "emaildata_lookup.json"
 VERSION = "0.4"
-
+NUMBER_OF_ATTEMPTS = 3
 VALID_PASSWORDS = ["63f6a3533a1d65ea4cc016ef2371c09bce7a00b3d4495e2cf6eec18d4083e1f0", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"]
 
 # v0.4
@@ -108,7 +108,7 @@ class MailtoManage:
 
     def authorise(self): 
         pass_try = 0
-        x = 3
+        x = NUMBER_OF_ATTEMPTS
         
         while pass_try < x:
             getpwd = GetPwd()
@@ -376,31 +376,6 @@ class MailtoManage:
 
 
 def main():
-    # pass_try = 0
-    # x = 3
-
-    # while pass_try < x:
-        # password = hashlib.sha256(getpwd().encode()).hexdigest()
-
-        # #m = hashlib.sha256(getpwd().encode())
-        # #hashlist_emailAddress_list.append(m.hexdigest())
-        # #print("password entered is: " + password)
-
-        # # Blank password: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-        # # My Password: 63f6a3533a1d65ea4cc016ef2371c09bce7a00b3d4495e2cf6eec18d4083e1f0
-
-        # valid_passwords = ["63f6a3533a1d65ea4cc016ef2371c09bce7a00b3d4495e2cf6eec18d4083e1f0", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"]
-        
-        # if password in valid_passwords: 
-            # pass_try = x+1
-        # else:
-            # pass_try += 1
-            # print("Incorrect Password!", "Invalid Password entered. " + str(x-pass_try) + " more attempts left. \nRefer to James Aceret (3872 0804) for help on this issue.")
-
-    # if pass_try == x:
-        # sys.exit("Incorrect Password, terminating...")
-
-    # print("User password valid.")
     app = MailtoManage()
       
 
