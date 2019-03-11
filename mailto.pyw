@@ -22,10 +22,13 @@ from mailtodata import *
 # v0.5a - Adds Refresh Template Button to both Systems and Other pages
 # v0.6 - 
 # v0.6a - Fixes launching of other helper scripts from within mailto.py
+#       - backups of lookup JSON file
 
-VERSION = "0.6"
+VERSION = "0.6a"
 DEFAULT_SUBJECT = "[ENTER EMAIL SUBJECT]"
 DEFAULT_BODY = "[This is an output email from 'mailto' script!]\n\n\n"
+
+
 
 # Do not make changes to this, this is default data and is used to 
 # re-create the emaildata.json file if one is not already available in the 
@@ -79,6 +82,7 @@ class mailto:
 
         self.email_lookup_table = self.ReadJSONfile("emaildata_lookup.json")
         self.filename = "emaildata_v2.json"
+        self.filename_emaildata_lookup_file = "emaildata_lookup.json"
         self.root = tk.Tk()       
        
         menubar = tk.Menu(self.root)
@@ -86,11 +90,11 @@ class mailto:
         optionmenu = tk.Menu(menubar, tearoff=0)
 
         menubar.add_cascade(label="File", menu=filemenu)
-        menubar.add_cascade(label="Option", menu=optionmenu)
-        optionmenu.add_command(label="Manage Email Groups...", command=self.MenuBar_Manage_EmailGroup) 
-        optionmenu.add_command(label="Backup Email File...", command=self.Backup_EmailFile) 
-        optionmenu.add_command(label="Template Editor...", command=self.Launch_TemplateEditor)
-        filemenu.add_command(label="Exit", command=self.root.destroy)
+        menubar.add_cascade(label="Options", menu=optionmenu)
+        #optionmenu.add_command(label="Launch Email Group Editor...", command=self.MenuBar_Manage_EmailGroup) 
+        optionmenu.add_command(label="Backup Email Group JSON files...", command=self.Backup_EmailFile) 
+        #optionmenu.add_command(label="Launch Template Editor...", command=self.Launch_TemplateEditor)
+        filemenu.add_command(label="Exit mailto script", command=self.root.destroy)
         
         self.root.config(menu=menubar)
         self.data = self.ReadJSONfile(self.filename)  
@@ -101,19 +105,24 @@ class mailto:
         self.root.mainloop()    
 
     def Launch_TemplateEditor(self):
+        
         if os.name == 'nt': 
             subprocess.Popen(['TemplateEditor.pyw'])
         elif os.name == 'posix': 
-            subprocess.Popen(['python3', 'TemplateEditor.pyw'])        
+            subprocess.Popen(['python3', 'TemplateEditor.py'])        
         
         
     def MenuBar_Manage_EmailGroup(self):
+        MailtoManage.MailtoManage() 
+        
         if os.name == 'nt': 
             subprocess.Popen(['MailtoManage.pyw'])
         elif os.name == 'posix': 
-            subprocess.Popen(['python3', 'MailtoManage.pyw'])        
+            subprocess.Popen(['python3', 'MailtoManage.py'])        
 
     def Backup_EmailFile(self):
+    
+        # backup email groups
         if (os.path.isfile(self.filename)): 
             with open(self.filename, 'r') as json_file:
                 data = json.load(json_file)
@@ -125,6 +134,19 @@ class mailto:
         else: 
             print(json_filename + " cannot be found. Generating default file...")
             sys.exit(2) # exit out cleanly. 
+            
+        # backup email lookup table
+        if (os.path.isfile(self.filename_emaildata_lookup_file)): 
+            with open(self.filename_emaildata_lookup_file, 'r') as json_file:
+                data = json.load(json_file)
+                unix_timestamp = datetime.now().timestamp()
+                output_backup_fname = "backup/" +self.filename_emaildata_lookup_file+ "_" + str(unix_timestamp) + "_" + getpass.getuser() +".backup"
+                with open(output_backup_fname,'w+') as json_file:
+                    json.dump(data, json_file, sort_keys=True, indent=4, separators=(',',':'))
+            messagebox.showinfo("Backup Complete", "Backup of " + self.filename_emaildata_lookup_file + ", has been saved as: " + output_backup_fname)        
+        else: 
+            print(self.filename_emaildata_lookup_file + " cannot be found.")
+            sys.exit(2) 
 
     # modify such that the json_file is the hashed_email_addresses
     # and this function will correctly map the expected email addresses to form 
@@ -346,7 +368,7 @@ class mailto:
         
         frame_AddressTextArea = ttk.Frame(self.frame_Address)
         frame_AddressTextArea.pack(side=LEFT, fill=BOTH, expand = True, padx = 5, pady=5)
-        frame_AddressTextArea.config(relief = RIDGE, borderwidth = 0)
+        frame_AddressTextArea.config(relief = FLAT, borderwidth = 0)
         
         # Text Area for TO: Addresses
         frame_TOtextarea_EGM = ttk.Labelframe(frame_AddressTextArea, text="To Details:")
@@ -436,7 +458,7 @@ class mailto:
         ################ Bottom FRAME ##############
         frame_bottombuttons = ttk.Frame(self.page1)
         frame_bottombuttons.pack(side=BOTTOM, fill=X, expand = False,)
-        frame_bottombuttons.config(relief = RIDGE, borderwidth = 0)    
+        frame_bottombuttons.config(relief = FLAT, borderwidth = 0)    
            
          # Button To Clear To: Details
         button_clearform_EGM= ttk.Button(frame_bottombuttons, text = "Clear Form", width = 20,command = lambda: self.handleButtonPress('__clear_form_egm__'))                                             
@@ -479,7 +501,7 @@ class mailto:
         
         frame_AddressTextArea = ttk.Frame(self.frame_Address_SYS)
         frame_AddressTextArea.pack(side=LEFT, fill=BOTH, expand = True, padx = 5, pady=5)
-        frame_AddressTextArea.config(relief = RIDGE, borderwidth = 0)
+        frame_AddressTextArea.config(relief = FLAT, borderwidth = 0)
         
         # Text Area for TO: Addresses
         frame_TOtextarea_SYS = ttk.Labelframe(frame_AddressTextArea, text="To: Details:")
@@ -536,7 +558,7 @@ class mailto:
         ## cc: Options
         self.generateEmailGroups("SYS")
 
-        ttk.Label(self.frame_Address_SYS, text="Email Groups: Refer FM14 for Details.", foreground="red").pack(side=TOP, anchor='s', fill =Y, expand = False, pady=5, padx=5)
+        ttk.Label(self.frame_Address_SYS, text="Email Groups: Refer FM14 for Details.", font=("Arial", 18), foreground="red").pack(side=TOP, anchor='s', fill =Y, expand = False, pady=5, padx=5)
         self.DrawCCCheckButtons_SYS()
        
         #frame_Header
@@ -570,7 +592,7 @@ class mailto:
         ################ Bottom FRAME ##############
         frame_bottombuttons = ttk.Frame(self.page2)
         frame_bottombuttons.pack(side=BOTTOM, fill=X, expand = False)
-        frame_bottombuttons.config(relief = RIDGE, borderwidth = 0)       
+        frame_bottombuttons.config(relief = FLAT, borderwidth = 0)       
          # Button To Clear To: Details
         button_ADD_contacts= ttk.Button(frame_bottombuttons, text = "Clear Form", width = 20,command = lambda: self.handleButtonPress('__clear_form_sys__'))                                             
         button_ADD_contacts.grid(row=0, column=1,  sticky='s',  padx=5, pady=5)
@@ -598,7 +620,7 @@ class mailto:
         
         frame_AddressTextArea = ttk.Frame(self.page3)
         frame_AddressTextArea.pack(side=TOP, fill=BOTH, expand = True, padx = 5, pady=5)
-        frame_AddressTextArea.config(relief = RIDGE, borderwidth = 0)
+        frame_AddressTextArea.config(relief = FLAT, borderwidth = 0)
         
         # Text Area for TO: Addresses
         frame_TOtextarea_OTHER = ttk.Labelframe(frame_AddressTextArea, text="To Details:")
@@ -639,7 +661,7 @@ class mailto:
         ################ Bottom FRAME ##############
         frame_bottombuttons = ttk.Frame(self.page3)
         frame_bottombuttons.pack(side=BOTTOM, fill=X, expand = False)
-        frame_bottombuttons.config(relief = RIDGE, borderwidth = 0)       
+        frame_bottombuttons.config(relief = FLAT, borderwidth = 0)       
          # Button To Clear To: Details
         button_ADD_contacts= ttk.Button(frame_bottombuttons, text = "Clear Form", width = 20,command = lambda: self.handleButtonPress('__clear_form_other__'))                                             
         button_ADD_contacts.grid(row=0, column=1,  sticky='s',  padx=5, pady=5)

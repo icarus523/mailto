@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 
 import json
-import os, sys
+import os
+import sys
 import mailto
 import shlex
 import getpass
@@ -303,10 +304,15 @@ class MailtoManage:
     def handleButtonPress(self, input):
         self.RefreshEmailGroups()         
         
-        if self.Backup_EmailFile(FILENAME) == 0:
+        if input != '__refresh_groups__' and self.Backup_EmailFile(FILENAME) == 0:
             print("Automatically saving a backup of last: " + FILENAME)
         else: 
             print("Error saving a backup of file: " + FILENAME)
+        
+        if input != '__refresh_groups__' and self.Backup_EmailFile(LOOKUPTABLE_FILE) == 0:
+            print("Automatically saving a backup of last: " + LOOKUPTABLE_FILE)
+        else: 
+            print("Error saving a backup of file: " + LOOKUPTABLE_FILE)
         
         if input == '__selected_save_changes__':
             updated_addr = self.text_Addresses.get(1.0, 'end-1c').split("\n")
