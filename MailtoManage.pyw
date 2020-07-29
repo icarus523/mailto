@@ -18,6 +18,10 @@ VERSION = "0.4"
 NUMBER_OF_ATTEMPTS = 3
 VALID_PASSWORDS = ["63f6a3533a1d65ea4cc016ef2371c09bce7a00b3d4495e2cf6eec18d4083e1f0", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"]
 
+# v0.7
+# Disable password check 
+# As per directives in QMS Memo: 29/7/2020
+
 # v0.4
 # Adds password protection to class as opposed to script
 
@@ -83,9 +87,11 @@ class MailtoManage:
 
     # Constructor
     def __init__(self):
-                
-        if self.authorise(): 
         
+        
+        # Disable password check
+        # if self.authorise(): 
+        if True:
             self.data = ''
             self.emailaddressheaders = []
             self.EmailGroupAddress_hashlist = []
