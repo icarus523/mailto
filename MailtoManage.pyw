@@ -8,6 +8,7 @@ import shlex
 import getpass
 import hashlib
 from datetime import datetime
+import re
 
 from tkinter import *
 from tkinter import ttk
@@ -17,11 +18,17 @@ LOOKUPTABLE_FILE = "emaildata_lookup.json"
 VERSION = "0.4"
 NUMBER_OF_ATTEMPTS = 3
 VALID_PASSWORDS = ["63f6a3533a1d65ea4cc016ef2371c09bce7a00b3d4495e2cf6eec18d4083e1f0", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"]
+# EMAIL_ADDRESS_REGEX = re.compile(r"\A[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\z")
 
-# v0.7
+# v0.7 
+# relax email address verification to cater for printable characters. 
+
+# v0.6
 # Disable password check 
 # As per directives in QMS Memo: 29/7/2020
 
+# v0.5
+# Adds proper email address regex validations
 # v0.4
 # Adds password protection to class as opposed to script
 
@@ -87,10 +94,9 @@ class MailtoManage:
 
     # Constructor
     def __init__(self):
-        
-        
-        # Disable password check
-        # if self.authorise(): 
+
+        # Disable password check               
+        #if self.authorise(): 
         if True:
             self.data = ''
             self.emailaddressheaders = []
@@ -336,8 +342,10 @@ class MailtoManage:
                 # clean email address: 
                 address = re.sub(';', '', address.lower()) # remove semicolons and tolower() 
                 # filter out just email address
-                match = re.findall(r'[\w\.-]+@[\w\.-]+', address)                 
-
+                # match = re.findall(r'[\w\.-]+@[\w\.-]+', address)        
+                match = re.findall(r'[^@]+@[^@]+\.[^@]+', address)                        
+                # match = re.findall(r'''\A[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\z''', address)                          
+                # match = re.findall()
                 hashed_email_address = hashlib.sha256(str(match[0]).encode('utf-8')).hexdigest() # use SHA1 hashes and save this 
                 print(match[0], hashed_email_address)
                 hashed_addr_list.append(hashed_email_address)
