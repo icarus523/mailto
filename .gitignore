@@ -1,0 +1,6 @@
+
+*.pyc
+*.json
+*.sublime-project
+*.sublime-workspace
+*.html

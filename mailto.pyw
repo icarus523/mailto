@@ -9,6 +9,7 @@ import MailtoManage
 import TemplateEditor
 import tkinter as tk
 import getpass
+import io
 
 from tkinter import *
 from tkinter import messagebox
@@ -23,8 +24,9 @@ from mailtodata import *
 # v0.6 - 
 # v0.6a - Fixes launching of other helper scripts from within mailto.py
 #       - backups of lookup JSON file
+# v0.6b - Adds a Menu Item to display the URL link to click on.
 
-VERSION = "0.6a"
+VERSION = "0.6b"
 DEFAULT_SUBJECT = "[ENTER EMAIL SUBJECT]"
 DEFAULT_BODY = "[This is an output email from 'mailto' script!]\n\n\n"
 
@@ -74,9 +76,9 @@ class ScrollableFrame(tk.Frame):
 
 class mailto:
 
-    # Constructor
     def __init__(self):
-        self.pathtotemplates = "templates/"
+        self.urlstr = ''
+        self.path_to_templates = "templates/"
         self.template_subject = DEFAULT_SUBJECT
         self.template_body = DEFAULT_BODY
 
@@ -93,7 +95,7 @@ class mailto:
         menubar.add_cascade(label="Options", menu=optionmenu)
         #optionmenu.add_command(label="Launch Email Group Editor...", command=self.MenuBar_Manage_EmailGroup) 
         optionmenu.add_command(label="Backup Email Group JSON files...", command=self.Backup_EmailFile) 
-        #optionmenu.add_command(label="Launch Template Editor...", command=self.Launch_TemplateEditor)
+        optionmenu.add_command(label="Display Mailto URL string...", command=self.Display_URL)
         filemenu.add_command(label="Exit mailto script", command=self.root.destroy)
         
         self.root.config(menu=menubar)
@@ -103,6 +105,15 @@ class mailto:
         self.setupOther_Page()
         self.setupSystems_Page()
         self.root.mainloop()    
+
+    def Display_URL(self): 
+        # messagebox.showinfo("URL string", self.urlstr)
+        fname = 'link.html'
+        with open(fname, 'w+') as f_out:
+           make_list = '<li><a href="{}">Click To Send Create Mail</a></li>'.format(self.urlstr)
+           f_out.write('{}\n'.format(make_list))
+
+        os.startfile(fname)
 
     def Launch_TemplateEditor(self):
         
@@ -163,7 +174,7 @@ class mailto:
         return (data)
 
     def generateTemplateList(self, keyword):
-        template_file_list = os.listdir(self.pathtotemplates)
+        template_file_list = os.listdir(self.path_to_templates)
         output_file_list = list()
         for item in template_file_list:
             if item.startswith(keyword):
@@ -178,8 +189,8 @@ class mailto:
     def readEmailTemplate(self, template_filename):
         template = ''
         print("Template selected is: " + template_filename)
-        if (os.path.isfile(os.path.join(self.pathtotemplates, template_filename))):
-            with open(os.path.join(self.pathtotemplates, template_filename),'r') as template_file:
+        if (os.path.isfile(os.path.join(self.path_to_templates, template_filename))):
+            with open(os.path.join(self.path_to_templates, template_filename),'r') as template_file:
                 template = json.load(template_file)
         else:
             print (template_filename + " cannot be found. Exiting")
@@ -246,6 +257,8 @@ class mailto:
 
         if self.validateMailToStrLength(urlstr):
             webbrowser.open(urlstr)
+
+        self.urlstr = urlstr
 
     def validateMailToStrLength(self, arg):
         userChoice = bool
@@ -424,7 +437,7 @@ class mailto:
         ## cc: Options
         self.generateEmailGroups("EGM")
 
-        ttk.Label(self.frame_Address, text="Email Groups: Refer FM14 for Details.", foreground="red").pack(side=TOP, anchor='s', fill =Y, expand = False, pady=5, padx=5)
+        ttk.Label(self.frame_Address, text="Email Groups: Refer FM14 for Details.", foreground="red", font=("Arial", 14)).pack(side=TOP, anchor='s', fill =Y, expand = False, pady=5, padx=5)
         self.DrawCCCheckButtons_EGM() # Checkboxes
         
         #frame_Header
