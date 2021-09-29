@@ -160,7 +160,7 @@ class mailto:
             self.root.clipboard_append(email_recipients)
             self.root.update()
 
-            userChoice = messagebox.showinfo("Generated URL string", "The following has been copied into your clipboard: \n\n" + email_recipients)
+            userChoice = messagebox.showinfo("Copied Recipients to Clipboard", "The following has been copied into your clipboard: CTRL-V away!\n\n" + email_recipients)
 
     def Display_URL(self): 
         # messagebox.showinfo("URL string", self.urlstr)
