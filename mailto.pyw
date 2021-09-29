@@ -25,12 +25,14 @@ from mailtodata import *
 # v0.6a - Fixes launching of other helper scripts from within mailto.py
 #       - backups of lookup JSON file
 # v0.6b - Adds a Menu Item to display the URL link to click on.
+# v0.6c - Adds a Menu Item to copy_recipients_to_clipboard
+#       - Changed reference from FM14 to INET
+#       - Added checks for template being selected
 
-VERSION = "0.6b"
+VERSION = "0.6c"
 DEFAULT_SUBJECT = "[ENTER EMAIL SUBJECT]"
 DEFAULT_BODY = "[This is an output email from 'mailto' script!]\n\n\n"
-
-
+DEFAULT_COMBO_TEXTBOX = '1. Select a Template...'
 
 # Do not make changes to this, this is default data and is used to 
 # re-create the emaildata.json file if one is not already available in the 
@@ -86,6 +88,7 @@ class mailto:
         self.filename = "emaildata_v2.json"
         self.filename_emaildata_lookup_file = "emaildata_lookup.json"
         self.root = tk.Tk()       
+        self.nb = ttk.Notebook(self.root)
        
         menubar = tk.Menu(self.root)
         filemenu = tk.Menu(menubar, tearoff=0)
@@ -93,9 +96,10 @@ class mailto:
 
         menubar.add_cascade(label="File", menu=filemenu)
         menubar.add_cascade(label="Options", menu=optionmenu)
-        #optionmenu.add_command(label="Launch Email Group Editor...", command=self.MenuBar_Manage_EmailGroup) 
+        optionmenu.add_command(label="Launch MailtoManage Group Editor...", command=self.MenuBar_Manage_EmailGroup) 
         optionmenu.add_command(label="Backup Email Group JSON files...", command=self.Backup_EmailFile) 
         optionmenu.add_command(label="Display Mailto URL string...", command=self.Display_URL)
+        optionmenu.add_command(label="Copy mailto recipients to clipboard...", command=self.copy_recipients_to_clipboard)        
         filemenu.add_command(label="Exit mailto script", command=self.root.destroy)
         
         self.root.config(menu=menubar)
@@ -106,8 +110,67 @@ class mailto:
         self.setupSystems_Page()
         self.root.mainloop()    
 
+
+    def copy_recipients_to_clipboard(self):
+        key = self.nb.tab(self.nb.select(), "text").upper()
+        print(key, self.urlstr)
+        # self.generateEmail(key.upper()) # self.urlstr update
+
+        recipients = ''
+        cc = ''
+        bcc = '' 
+        
+        if key == "EGM":
+            recipients = self.text_TOoutput_EGM.get(1.0, END)
+            cc = self.text_CCoutput_EGM.get(1.0, END)
+            bcc = self.text_BCCoutput_EGM.get(1.0, END)
+
+            subject = self.template_subject
+            body = self.template_body
+
+            template = self.combobox_box_Template_EGM.get()
+                
+        elif key == "OTHER":
+            recipients = self.text_TOoutput_OTHER.get(1.0, END)
+            cc = self.text_CCoutput_OTHER.get(1.0, END)
+            bcc = self.text_BCCoutput_OTHER.get(1.0, END)
+            
+            subject = self.template_subject
+            body = self.template_body
+
+            template = self.combobox_box_Template_OTHER.get()
+            
+        elif key == "SYSTEMS":
+            recipients = self.text_TOoutput_SYS.get(1.0, END)
+            cc = self.text_CCoutput_SYS.get(1.0, END)
+            bcc = self.text_BCCoutput_SYS.get(1.0, END)
+            
+            subject = self.template_subject
+            body = self.template_body
+        
+            template = self.combobox_box_Template_SYS.get()
+
+        if template.strip() == DEFAULT_COMBO_TEXTBOX: 
+            userChoice = messagebox.showwarning("No recipients", "Please select a template and try again.\n\n")
+        else: 
+            email_recipients = "to: " + recipients + "\n\n" + "cc: " + cc + "\n\n" + "bcc: " + bcc + "\n\n"
+
+            # copy urlstr to clip board
+            self.root.clipboard_clear() 
+            self.root.clipboard_append(email_recipients)
+            self.root.update()
+
+            userChoice = messagebox.showinfo("Generated URL string", "The following has been copied into your clipboard: \n\n" + email_recipients)
+
     def Display_URL(self): 
         # messagebox.showinfo("URL string", self.urlstr)
+
+        key = self.nb.tab(self.nb.select(), "text")
+        if key == 'SYSTEMS': 
+            self.generateEmail('SYS') # self.urlstr update
+        else: 
+            self.generateEmail(key.upper()) # self.urlstr update
+
         fname = 'link.html'
         with open(fname, 'w+') as f_out:
            make_list = '<li><a href="{}">Click To Send Create Mail</a></li>'.format(self.urlstr)
@@ -218,6 +281,12 @@ class mailto:
         return outputstr
 
     def generateEmail(self, key):
+        cc = ''
+        bcc = ''
+        recipients = ''
+        subject = ''
+        body = ''
+
         if key == "EGM":
             recipients = self.text_TOoutput_EGM.get(1.0, END)
             cc = self.text_CCoutput_EGM.get(1.0, END)
@@ -225,6 +294,8 @@ class mailto:
 
             subject = self.template_subject
             body = self.template_body
+
+            template = self.combobox_box_Template_EGM.get()
                 
         elif key == "OTHER":
             recipients = self.text_TOoutput_OTHER.get(1.0, END)
@@ -234,6 +305,8 @@ class mailto:
             subject = self.template_subject
             body = self.template_body
             
+            template = self.combobox_box_Template_OTHER.get()
+
         elif key == "SYS":
             recipients = self.text_TOoutput_SYS.get(1.0, END)
             cc = self.text_CCoutput_SYS.get(1.0, END)
@@ -241,24 +314,29 @@ class mailto:
             
             subject = self.template_subject
             body = self.template_body
-        
-        # urllib.parse.quote(subject), urllib.parse.quote(body)))
-        urlstr = ''
-        if len(cc) == 0:
-            if len(bcc) == 0:
-                urlstr = "mailto:%s?subject=%s&body=%s" % (quote(recipients), quote(subject), quote(body))
-            else:
-                urlstr = "mailto:%s?bcc=%s&subject=%s&body=%s" % (quote(recipients), quote(bcc), quote(subject), quote(body))
-        else: 
-            if len(bcc) == 0:
-                urlstr = "mailto:%s?cc=%s&subject=%s&body=%s" % (quote(recipients), quote(cc), quote(subject), quote(body))
-            else:
-                urlstr = "mailto:%s?cc=%s&bcc=%s&subject=%s&body=%s" % (quote(recipients), quote(cc), quote(bcc), quote(subject), quote(body))
 
-        if self.validateMailToStrLength(urlstr):
-            webbrowser.open(urlstr)
+            template = self.combobox_box_Template_SYS.get()
 
-        self.urlstr = urlstr
+        if template.strip() == DEFAULT_COMBO_TEXTBOX: 
+            userChoice = messagebox.showwarning("No recipients", "Please select a template and try again.\n\n")
+        else:         
+            # urllib.parse.quote(subject), urllib.parse.quote(body)))
+            urlstr = ''
+            if len(cc) == 0:
+                if len(bcc) == 0:
+                    urlstr = "mailto:%s?subject=%s&body=%s" % (quote(recipients), quote(subject), quote(body))
+                else:
+                    urlstr = "mailto:%s?bcc=%s&subject=%s&body=%s" % (quote(recipients), quote(bcc), quote(subject), quote(body))
+            else: 
+                if len(bcc) == 0:
+                    urlstr = "mailto:%s?cc=%s&subject=%s&body=%s" % (quote(recipients), quote(cc), quote(subject), quote(body))
+                else:
+                    urlstr = "mailto:%s?cc=%s&bcc=%s&subject=%s&body=%s" % (quote(recipients), quote(cc), quote(bcc), quote(subject), quote(body))
+
+            if self.validateMailToStrLength(urlstr):
+                webbrowser.open(urlstr)
+
+            self.urlstr = urlstr
 
     def validateMailToStrLength(self, arg):
         userChoice = bool
@@ -347,7 +425,6 @@ class mailto:
         
         self.root.resizable(1,1)    
         self.root.focus_force()  
-        self.nb = ttk.Notebook(self.root)
         self.page1 = ttk.Frame(self.nb)
         self.page2 = ttk.Frame(self.nb)
         self.page3 = ttk.Frame(self.nb)
@@ -363,7 +440,7 @@ class mailto:
         self.cbTemplate = StringVar()
         self.combobox_box_Template_EGM = ttk.Combobox(frame_Header, justify=LEFT, textvariable=self.cbTemplate, width = 60, state='normal')
         self.combobox_box_Template_EGM.grid(row = 0, column=0, sticky = N, pady=5, padx=5)
-        self.combobox_box_Template_EGM.set('1. Select a Template...')
+        self.combobox_box_Template_EGM.set(DEFAULT_COMBO_TEXTBOX)
         self.combobox_box_Template_EGM['values'] =  self.generateTemplateList("EGM") # generate values based on Template List
         self.combobox_box_Template_EGM.bind('<<ComboboxSelected>>', self.handleComboBoxChanges_EGM)
 
@@ -437,7 +514,7 @@ class mailto:
         ## cc: Options
         self.generateEmailGroups("EGM")
 
-        ttk.Label(self.frame_Address, text="Email Groups: Refer FM14 for Details.", foreground="red", font=("Arial", 14)).pack(side=TOP, anchor='s', fill =Y, expand = False, pady=5, padx=5)
+        ttk.Label(self.frame_Address, text="Email Groups: Refer INET for Details.", foreground="red", font=("Arial", 14)).pack(side=TOP, anchor='s', fill =Y, expand = False, pady=5, padx=5)
         self.DrawCCCheckButtons_EGM() # Checkboxes
         
         #frame_Header
@@ -496,7 +573,7 @@ class mailto:
         self.cbTemplate_SYS = StringVar()
         self.combobox_box_Template_SYS = ttk.Combobox(frame_Header, justify=LEFT, textvariable=self.cbTemplate_SYS, width = 60, state='readonly')
         self.combobox_box_Template_SYS.pack(side = LEFT, fill=X, padx=5, pady=5)
-        self.combobox_box_Template_SYS.set('1. Select Template...')
+        self.combobox_box_Template_SYS.set(DEFAULT_COMBO_TEXTBOX)
         self.combobox_box_Template_SYS['values'] =  self.generateTemplateList("SYS") # generate values based on Template List
         self.combobox_box_Template_SYS.bind('<<ComboboxSelected>>', self.handleComboBoxChanges_SYS)
 
@@ -619,7 +696,7 @@ class mailto:
         self.cbTemplate_OTHER = StringVar()
         self.combobox_box_Template_OTHER = ttk.Combobox(frame_Header, justify=LEFT, textvariable=self.cbTemplate_OTHER, width = 40, state='readonly')
         self.combobox_box_Template_OTHER.pack(side = LEFT, fill=X, padx=5, pady=5)
-        self.combobox_box_Template_OTHER.set('1. Select Template...')
+        self.combobox_box_Template_OTHER.set(DEFAULT_COMBO_TEXTBOX)
         self.combobox_box_Template_OTHER['values'] =  self.generateTemplateList("OTHER") # generate values based on Template List
         self.combobox_box_Template_OTHER.bind('<<ComboboxSelected>>', self.handleComboBoxChanges_OTHER)
 
