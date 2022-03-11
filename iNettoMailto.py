@@ -26,7 +26,7 @@ class iNettoMailto:
 
         # Test Retrieves email address for the following email group. 
         test_mail_group = "OLGR Casino Inspectorate - Star Casino - Brisbane" 
-        print(self.GetEmailAddressListString_from_EmailGroup(test_mail_group))
+        assert(self.GetEmailAddressListString_from_EmailGroup(test_mail_group) == 'brisbanesouth@justice.qld.gov.au')
     
     def GetEmailAddressListString_from_EmailGroup(self, email_group_str): 
         email_hashes = self.emailgroups_data_w_hash[email_group_str]
@@ -51,18 +51,6 @@ class iNettoMailto:
             
         # print(json.dumps(email_address_dict, sort_keys=True, indent=4, separators=(',',':'))) # write to disk. 
         return(email_address_dict) 
-
-        
-    def ReadJSONfile(self, json_filename):
-        data = ''
-        if (os.path.isfile(json_filename)): 
-            with open(json_filename, 'r') as json_file:
-                data = json.load(json_file)
-        else:
-            print(json_filename + " cannot be found.")
-            sys.exit(2) # exit out cleanly. 
-        
-        return (data)
 
     def WriteDatatoFile(self, data, fname):
         with open(fname,'w+') as json_file:
@@ -94,9 +82,11 @@ class iNettoMailto:
     def HashStr(self, s): 
         hash_obj = hashlib.sha256(str(s).encode('utf-8'))        
         return hash_obj.hexdigest()
-        
 
 def main():
-    app = iNettoMailto("sample.json")
+    input_file = "sample_converted.json"
+    # input_file is a JSON file format that needs to be formatted as a dict 
+    # to support mailto script. 
+    app = iNettoMailto(input_file)
 
 if __name__ == "__main__": main()

@@ -29,7 +29,7 @@ control_chars = ''.join(c for c in all_chars if unicodedata.category(c) in categ
 control_chars = ''.join(map(chr, itertools.chain(range(0x00,0x20), range(0x7f,0xa0))))
 control_char_re = re.compile('[%s]' % re.escape(control_chars))
 
-class iNet_to_MailtoFormat: 
+class iNetToMailtoFormat: 
 
     def __init__(self, file): 
         self.input_json = file 
@@ -39,16 +39,12 @@ class iNet_to_MailtoFormat:
         print(json.dumps(self.data, sort_keys=True, indent=4, separators=(',',':')))
 
         # save to disk
-        self.write_data_to_file(self.data, OUTPUT_FILE_NAME)
+        iNettoMailto.WriteDatatoFile(self, self.data, OUTPUT_FILE_NAME)
 
         iNettoMailto(OUTPUT_FILE_NAME)
 
     def remove_control_chars(self, s):
         return control_char_re.sub('', s)
-
-    def write_data_to_file(self, data, fname):
-        with open(fname,'w+') as json_file:
-            json.dump(data, json_file, sort_keys=True, indent=4, separators=(',',':'))    
 
     def convertJSON(self, json_data): 
         converted_data_d = dict() 
@@ -59,9 +55,10 @@ class iNet_to_MailtoFormat:
 
             # due to: regulatory.lotterieskeno&gaming@tabcorp.com.au;
             # HTML converts this string to 'regulatory.lotterieskeno&amp;gaming@tabcorp.com.au';
-            # however the following process will escape the &. so this will replacce '&amp;' with '&'
+            # however the following process will escape the &. so this will replace '&amp;' 
+            # with the original characer '&'
             address_s = item['Contact Email Address'].replace('&amp;', '&')
-            # turn the string to a list
+            # turn the string to a list, while removing any non-printable characters, i.e. \n\r
             address_l = self.remove_control_chars(address_s).split(';')
             # remove empty strings.
             address_l = [x for x in address_l if x !='']  
@@ -73,6 +70,6 @@ class iNet_to_MailtoFormat:
         return converted_data_d
 
 def main():
-    app = iNet_to_MailtoFormat(INPUT_FILE_NAME)
+    app = iNetToMailtoFormat(INPUT_FILE_NAME)
 
 if __name__ == "__main__": main()
