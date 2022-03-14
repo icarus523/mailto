@@ -108,7 +108,7 @@ class MailtoManage:
                 print("Email Data file integrity: OK")
             else:
                 # Automatically Generate Signature JSON file
-                self.generateSignatureJSONfile()
+                self.generateSignatureJSONfile(FILENAME, self.data)
                 print("FYI: Generated new Email Group Signature File")
                 # sys.exit(2)
 
@@ -147,17 +147,17 @@ class MailtoManage:
         print("User password valid.")
         return True
         
-    def generateSignatureJSONfile(self):
+    def generateSignatureJSONfile(self, fname, data):
         # Read the EmailData.json file,
         # Regenerate the Email Signature JSON object
         # Overwrite the previous signature json file with the new version.
 
-        self.data = None # Reinitialise
-        self.readfile(FILENAME)
+        # self.data = None # Reinitialise
+        # self.readfile(fname)
 
-        with open(FILENAME+"_sigs.json", 'w') as jsonsigs_outfile: # overwrite
+        with open(fname+"_sigs.json", 'w') as jsonsigs_outfile: # overwrite
             # Generate Email Group Hashes in self.Generated_EmailDetails_list
-            Generated_EmailDetails_list = self.generateEmailGroupHashes(self.data)
+            Generated_EmailDetails_list = self.generateEmailGroupHashes(data)
 
             # Write to JSON file
             jsonsigs_outfile.write(json.dumps(Generated_EmailDetails_list, indent=4, separators=(',',':')))
@@ -364,7 +364,7 @@ class MailtoManage:
             # Regenerate the Email Signature JSON object
             # Overwrite the previous signature json file with the new version.
 
-            self.generateSignatureJSONfile()
+            self.generateSignatureJSONfile(FILENAME, self.data)
         
         elif input == '__refresh_groups__':
             self.RefreshEmailGroups() 
@@ -376,7 +376,7 @@ class MailtoManage:
                 del self.data[choice_email_group] 
                 self.SaveDatatoDisk()      
                 self.RefreshEmailGroups() 
-                self.generateSignatureJSONfile()
+                self.generateSignatureJSONfile(FILENAME, self.data)
 
     def SaveDatatoDisk(self): 
         with open(FILENAME, 'w') as json_file: #over-write file

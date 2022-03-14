@@ -40,7 +40,6 @@ class iNetToMailtoFormat:
 
         # save to disk
         iNettoMailto.WriteDatatoFile(self, self.data, OUTPUT_FILE_NAME)
-
         iNettoMailto(OUTPUT_FILE_NAME)
 
     def remove_control_chars(self, s):
