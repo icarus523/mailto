@@ -224,10 +224,11 @@ class mailto:
 
     # modify such that the json_file is the hashed_email_addresses
     # and this function will correctly map the expected email addresses to form 
+    # important to read json file as 'utf-8' encoding
     def ReadJSONfile(self, json_filename):
         data = ''
         if (os.path.isfile(json_filename)): 
-            with open(json_filename, 'r') as json_file:
+            with open(json_filename, 'r', encoding='utf8') as json_file:
                 data = json.load(json_file)
         else:
             print(json_filename + " cannot be found. Generating default file...")

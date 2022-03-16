@@ -33,7 +33,12 @@ class iNetToMailtoFormat:
 
     def __init__(self, file): 
         self.input_json = file 
+
         self.data = self.convertJSON(mailto.ReadJSONfile(self, self.input_json))
+        
+        # sort
+        for k,v in self.data.items():
+            self.data[k] = sorted(v)
         
         # this should now be in the expected format
         print(json.dumps(self.data, sort_keys=True, indent=4, separators=(',',':')))
@@ -64,7 +69,8 @@ class iNetToMailtoFormat:
             # sort address_l
             address_l = sorted(address_l)
             # add to the dict output
-            converted_data_d[item['Email Groups'].strip()] = address_l
+            # handle & in email group name
+            converted_data_d[item['Email Groups'].strip().replace('&amp;', '&')] = address_l
             
         return converted_data_d
 
