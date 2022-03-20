@@ -27,7 +27,7 @@ class mailtodata:
         self.WriteDatatoFile(self.emailgroups_data_w_hash, "emaildata_v2.json")
 
         # Test Retrieves email address for the following email group. 
-        test_mail_group = "OLGR Casino Inspectorates" 
+        test_mail_group = "OLGR Casino Inspectorate - Townsville"
         print(self.GetEmailAddressListString_from_EmailGroup(test_mail_group))
     
     def GetEmailAddressListString_from_EmailGroup(self, email_group_str): 
