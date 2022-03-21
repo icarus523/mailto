@@ -7,12 +7,13 @@ import unicodedata
 import json
 import pandas as pd
 
-from mailto import mailto, USE_ENCODED_DATA
+from mailto import mailto
 from MailtoDataEncode import MailtoDataEncode
 from HTMLParser import HTMLParser
 
 INPUT_FILE_NAME = 'storage_format.html'
-OUTPUT_FILE_NAME = 'sample_converted.json'
+OUTPUT_FILE_NAME = 'emaildata.json'
+USE_ENCODED_DATA = False
 
 # description:  convert the table entry for Mailto Email Groups in iNET to the mailto dictionary, 
 #               and then create the appropriate files (lookup). 
@@ -51,9 +52,10 @@ class MailtoDataEncodeFormat:
 
         # save to disk
         MailtoDataEncode.WriteDatatoFile(self, self.data, OUTPUT_FILE_NAME)
-        
+        os.remove('storage_format.json') # remove temp file, after pretty print
+
         # now generate the required encoded files for the mailto script
-        if mailto.USE_ENCODED_DATA == True: 
+        if USE_ENCODED_DATA == True: 
             MailtoDataEncode(OUTPUT_FILE_NAME)
 
     def remove_control_chars(self, s):

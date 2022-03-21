@@ -94,7 +94,7 @@ class mailto:
             self.filename = "emaildata_v2.json"
             self.filename_emaildata_lookup_file = "emaildata_lookup.json"
         else: 
-            self.filename = "sample_converted.json"
+            self.filename = "emaildata.json"
 
         self.root = tk.Tk()       
         self.nb = ttk.Notebook(self.root)
@@ -105,10 +105,12 @@ class mailto:
 
         menubar.add_cascade(label="File", menu=filemenu)
         menubar.add_cascade(label="Options", menu=optionmenu)
-        optionmenu.add_command(label="Launch MailtoManage Group Editor...", command=self.MenuBar_Manage_EmailGroup) 
+        #optionmenu.add_command(label="Launch MailtoManage Group Editor...", command=self.MenuBar_Manage_EmailGroup) 
         optionmenu.add_command(label="Backup Email Group JSON files...", command=self.Backup_EmailFile) 
-        optionmenu.add_command(label="Display Mailto URL string...", command=self.Display_URL)
+        #optionmenu.add_command(label="Display Mailto URL string...", command=self.Display_URL)
         optionmenu.add_command(label="Copy mailto recipients to clipboard...", command=self.copy_recipients_to_clipboard)        
+        optionmenu.add_command(label="Goto iNET FM14...", command=self.OpeniNET)        
+        optionmenu.add_command(label="Display iNET FM14: Storage Format...", command=self.DisplayiNETStorageFormat)                
         filemenu.add_command(label="Exit mailto script", command=self.root.destroy)
         
         self.root.config(menu=menubar)
@@ -119,6 +121,14 @@ class mailto:
         self.setupSystems_Page()
         self.root.mainloop()    
 
+
+    def OpeniNET(self): 
+        url = 'https://inet-olgr.justice.qld.gov.au/display/TECH/Contact+Lists'
+        webbrowser.open_new(url)
+
+    def DisplayiNETStorageFormat(self): 
+        url = 'https://inet-olgr.justice.qld.gov.au/plugins/viewstorage/viewpagestorage.action?pageId=48334101'
+        webbrowser.open_new(url)
 
     def copy_recipients_to_clipboard(self):
         key = self.nb.tab(self.nb.select(), "text").upper()

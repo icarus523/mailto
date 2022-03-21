@@ -20,7 +20,7 @@ USE_ENCODED_DATA = False
 FILENAME = "emaildata_v2.json"
 LOOKUPTABLE_FILE = "emaildata_lookup.json"
 # otherwise just use: 
-FILENAME_NON_ENCODED = "sample_converted.json"  # this is the output filename of the iNetToMailtoFormat.py script
+FILENAME_NON_ENCODED = "emaildata.json"  # this is the output filename of the iNetToMailtoFormat.py script
 
 # the following is required for authentication (currently disabled)
 NUMBER_OF_ATTEMPTS = 3
