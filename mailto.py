@@ -88,11 +88,10 @@ class mailto:
         self.template_subject = DEFAULT_SUBJECT
         self.template_body = DEFAULT_BODY
 
-        self.email_lookup_table = self.ReadJSONfile("emaildata_lookup.json")
-
         if USE_ENCODED_DATA: 
             self.filename = "emaildata_v2.json"
             self.filename_emaildata_lookup_file = "emaildata_lookup.json"
+            self.email_lookup_table = self.ReadJSONfile(filename_emaildata_lookup_file)
         else: 
             self.filename = "emaildata.json"
 
