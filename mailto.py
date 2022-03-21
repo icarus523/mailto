@@ -224,8 +224,8 @@ class mailto:
                     json.dump(data, json_file, sort_keys=True, indent=4, separators=(',',':'))
             messagebox.showinfo("Backup Complete", "Backup of " + self.filename + ", has been saved as: " + output_backup_fname)
         else: 
-            print(json_filename + " cannot be found. Generating default file...")
-            sys.exit(2) # exit out cleanly. 
+            print(json_filename + " cannot be found")
+            # sys.exit(2) # exit out cleanly. 
             
         # backup email lookup table
         if USE_ENCODED_DATA: 
@@ -239,7 +239,7 @@ class mailto:
                 messagebox.showinfo("Backup Complete", "Backup of " + self.filename_emaildata_lookup_file + ", has been saved as: " + output_backup_fname)        
             else: 
                 print(self.filename_emaildata_lookup_file + " cannot be found.")
-                sys.exit(2) 
+                # sys.exit(2) 
 
     # modify such that the json_file is the hashed_email_addresses
     # and this function will correctly map the expected email addresses to form 
@@ -253,7 +253,7 @@ class mailto:
             print(json_filename + " cannot be found. Generating default file...")
             #with open(json_filename, 'w') as json_file:
             #    json.dump(DEFAULT_EMAIL_DATA, json_file, sort_keys=True, indent=4, separators=(',',':')) # write to disk. 
-            sys.exit(2) # exit out cleanly. 
+            #sys.exit(2) # exit out cleanly. 
         return (data)
 
     def generateTemplateList(self, keyword):
