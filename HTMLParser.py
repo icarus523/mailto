@@ -20,7 +20,8 @@ class HTMLParser:
         print(f'Total tables: {len(table_read)}')
 
         self.df = table_read[0]
-
+        print(self.df.info())
+        
         return self.df.to_json(orient='records') 
 
     def WriteDatatoFile(self, json_d): 

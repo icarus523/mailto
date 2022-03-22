@@ -5,3 +5,4 @@
 *.sublime-workspace
 *.html
 *.backup
+/mailto-venv
