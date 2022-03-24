@@ -35,11 +35,11 @@ control_chars = ''.join(c for c in all_chars if unicodedata.category(c) in categ
 control_chars = ''.join(map(chr, itertools.chain(range(0x00,0x20), range(0x7f,0xa0))))
 control_char_re = re.compile('[%s]' % re.escape(control_chars))
 
-class MailtoDataEncodeFormat: 
+class iNetToMailtoFormat: 
 
     def __init__(self, file): 
         # read HTML and save JSON to disk
-        HTMLParser.WriteDatatoFile(self, HTMLParser.readHTML(self, file))
+        HTMLParser()
 
         self.data = self.convertJSON(mailto.ReadJSONfile(self, 'storage_format.json'))
 
@@ -88,6 +88,6 @@ class MailtoDataEncodeFormat:
         return converted_data_d
 
 def main():
-    app = MailtoDataEncodeFormat(INPUT_FILE_NAME)
+    app = iNetToMailtoFormat(INPUT_FILE_NAME)
 
 if __name__ == "__main__": main()

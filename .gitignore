@@ -6,3 +6,4 @@
 *.html
 *.backup
 /mailto-venv
+download_html.py
