@@ -37,26 +37,28 @@ control_char_re = re.compile('[%s]' % re.escape(control_chars))
 
 class iNetToMailtoFormat: 
 
-    def __init__(self, file): 
+    def __init__(self): 
         # read HTML and save JSON to disk
-        HTMLParser()
+        self.parser = HTMLParser()
+        if self.parser.parsed_website: 
+            self.data = self.convertJSON(mailto.ReadJSONfile(self, 'storage_format.json'))
 
-        self.data = self.convertJSON(mailto.ReadJSONfile(self, 'storage_format.json'))
+            # sort
+            for k,v in self.data.items():
+                self.data[k] = sorted(v)
+            
+            # 'self.data' should now be in the expected dict format
+            # print(json.dumps(self.data, sort_keys=True, indent=4, separators=(',',':')))
 
-        # sort
-        for k,v in self.data.items():
-            self.data[k] = sorted(v)
-        
-        # 'self.data' should now be in the expected dict format
-        # print(json.dumps(self.data, sort_keys=True, indent=4, separators=(',',':')))
+            # save to disk
+            MailtoDataEncode.WriteDatatoFile(self, self.data, OUTPUT_FILE_NAME)
+            os.remove('storage_format.json') # remove temp file, after pretty print
 
-        # save to disk
-        MailtoDataEncode.WriteDatatoFile(self, self.data, OUTPUT_FILE_NAME)
-        os.remove('storage_format.json') # remove temp file, after pretty print
-
-        # now generate the required encoded files for the mailto script
-        if USE_ENCODED_DATA == True: 
-            MailtoDataEncode(OUTPUT_FILE_NAME)
+            # now generate the required encoded files for the mailto script
+            if USE_ENCODED_DATA == True: 
+                MailtoDataEncode(OUTPUT_FILE_NAME)
+        else: 
+            print("Error parsing iNet website.")
 
     def remove_control_chars(self, s):
         return control_char_re.sub('', s)
@@ -88,6 +90,6 @@ class iNetToMailtoFormat:
         return converted_data_d
 
 def main():
-    app = iNetToMailtoFormat(INPUT_FILE_NAME)
+    app = iNetToMailtoFormat()
 
 if __name__ == "__main__": main()
