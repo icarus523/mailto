@@ -15,16 +15,9 @@ INPUT_FILE_NAME = 'storage_format.html'
 OUTPUT_FILE_NAME = 'emaildata.json'
 USE_ENCODED_DATA = False
 
-# description:  convert the table entry for Mailto Email Groups in iNET to the mailto dictionary, 
-#               and then create the appropriate files (lookup). 
- 
-# Procedure is: 
-# 1. Login to iNET at # https://inet-olgr.justice.qld.gov.au/display/TECH/Contact+Lists#ContactLists-MailtoEmailGroups
-# 2. in INET select "View Storage Format"
-# 3. Export to HTML and save as "storage_format.html"
-# 4. Run this script to produce "sample_converted.json"
-# 5. This will also run MailtoDataEncode to produce: "sample_emaildata_lookup.json" and "sample_emaildata_v2.json"
-# 6. compare differences and merge with existing 'emaildata_lookup.json' and 'emaildata_v2.json' file
+# description:  automatically scrape web content on iNET and generate the expected .json file 
+#               Convert the table entry for Mailto Email Groups in iNET to the mailto dictionary, 
+#               (optional) then create the appropriate files (lookup). 
 
 # stripping non printable characters from string
 # ref: https://stackoverflow.com/questions/92438/stripping-non-printable-characters-from-a-string-in-python
@@ -59,6 +52,7 @@ class iNetToMailtoFormat:
                 MailtoDataEncode(OUTPUT_FILE_NAME)
         else: 
             print("Error parsing iNet website.")
+            self.parser.root.quit()
 
     def remove_control_chars(self, s):
         return control_char_re.sub('', s)

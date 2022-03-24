@@ -12,7 +12,12 @@ from tkinter import *
 
 URL = "https://inet-olgr.justice.qld.gov.au/plugins/viewstorage/viewpagestorage.action?pageId=48334101"
 SUCCESS_CODE = 200
+
+# For debug purposes
 USE_JAMES_CREDENTIALS = False
+
+# To retrieve new ca cert:
+# View certificate from website and in firefox download "PEM (chain)"
 INET_CERT = "certs/inet-olgr-justice-qld-gov-au-chain.pem"
 
 # input_file is a JSON file format that needs to be formatted as a dict 
@@ -77,7 +82,7 @@ class HTMLParser:
         #==============================BUTTON WIDGETS=================================
         btn_login = Button(Form, text="Login", width=30, command=self.Login)
         btn_login.grid(pady=10, row=3, columnspan=2)
-        btn_login.bind('<Return>', self.Login)
+        btn_login.bind('<Return>', lambda event=None: btn_login.invoke()) #self.Login)
 
         self.root.mainloop()
 
@@ -89,9 +94,12 @@ class HTMLParser:
             auth_str = self.generate_auth_str(self.username.get(), self.password.get())
 
             if self.downloadHTML(URL, auth_str): 
-                self.WriteDatatoFile(JSON_FNAME, self.readHTML(HTML_fname))            
+                self.parsed_website = True
+                self.WriteDatatoFile(JSON_FNAME, self.readHTML(HTML_fname))    
             else:
-                print("error parsing: " + URL)
+                self.parsed_website = False
+
+            self.root.quit() # destroy        
 
     def generate_auth_str(self, login, password): 
         auth_str = login + ":" + password
@@ -129,7 +137,7 @@ class HTMLParser:
         print(f'Total tables: {len(table_read)}')
 
         self.df = table_read[0]
-        print(self.df.info())
+        # print(self.df.info())
         
         return self.df.to_json(orient='records') 
 
