@@ -4,6 +4,7 @@ import json
 import os, sys
 import tkinter as tk
 import getpass
+import mailto
 
 from tkinter import *
 from tkinter import messagebox
@@ -12,8 +13,9 @@ from datetime import datetime
 from urllib.parse import quote
 
 # v0.1 Initial Release
+# v0.2 Updated to utilise v2 of emaildata_v2.json
 
-VERSION = "0.1"
+VERSION = "0.2"
 DEFAULT_SUBJECT = "[ENTER EMAIL SUBJECT]"
 DEFAULT_BODY = "[This is an output email from 'mailto' script!]\n\n\n"
 
@@ -66,26 +68,23 @@ class TemplateEditor:
         filemenu.add_command(label="Exit", command=self.root.destroy)
         
         self.root.config(menu=menubar)
-        self.data = self.ReadJSONfile(self.filename)  
+        self.data = mailto.mailto.ReadJSONfile(self, self.filename)  
+        self.email_lookup_table = mailto.mailto.ReadJSONfile(self, "emaildata_lookup.json")
+        
         self.setupGUI()
         self.root.mainloop()    
 
-    def ReadJSONfile(self, json_filename):
-        data = ''
-        if (os.path.isfile(json_filename)): 
-            with open(json_filename, 'r') as json_file:
-                data = json.load(json_file)
-        else:
-            print(json_filename + " cannot be found. Generating default file...")
-            with open(json_filename, 'w') as json_file:
-                json.dump(DEFAULT_EMAIL_DATA, json_file, sort_keys=True, indent=4, separators=(',',':')) # write to disk. 
-            sys.exit(2) # exit out cleanly. 
-        return (data)
-
+    def rchop(self, thestring, ending):
+        if thestring.endswith(ending):
+            return thestring[:-len(ending)]
+        
+        return thestring        
+            
     def generateTemplateList(self):
         template_file_list = os.listdir(self.pathtotemplates)
         output_file_list = list()
         for item in template_file_list:
+           
             output_file_list.append(item)
             
         return output_file_list
@@ -103,13 +102,14 @@ class TemplateEditor:
         return template
 
     def saveTemplate(self, to_groups, cc_groups, bcc_groups, body, subject):
-        json_data = self.ReadJSONfile(self.filename)
+        json_data = mailto.mailto.ReadJSONfile(self, self.filename)
+        
         # remove duplicates. 
         to_groups = list(set(to_groups))
         cc_groups = list(set(cc_groups))
         bcc_groups = list(set(bcc_groups))
         
-        SavedTemplate = { "title" : self.combobox_box_Template_EGM.get(),
+        SavedTemplate = { "title" : self.combobox_box_Template_EGM.get()[:-5],
                           "to" : to_groups,
                           "cc" : cc_groups,
                           "bcc" : bcc_groups,
@@ -118,10 +118,10 @@ class TemplateEditor:
         template = { "Email Template": SavedTemplate }
         
         #print(json.dumps(template, indent=4, sort_keys=False, separators=(',',':')))
-        with open("templates/" + self.combobox_box_Template_EGM.get() + ".json", 'w') as json_file: 
+        with open("templates/" + self.combobox_box_Template_EGM.get()[:-5] + ".json", 'w') as json_file: 
             json.dump(template, json_file, sort_keys=True, indent=4, separators=(',',':')) # write to disk. 
 
-        messagebox.showinfo("Saved New Template", "Template Name:\n\n" + self.combobox_box_Template_EGM.get() + ".json" + 
+        messagebox.showinfo("Saved New Template", "Template Name:\n\n" + self.combobox_box_Template_EGM.get() + 
             "\n\nto: " + str(to_groups) + 
             "\n\ncc: " + str(cc_groups) + 
             "\n\nbcc:" + str(bcc_groups) + 
@@ -292,7 +292,8 @@ class TemplateEditor:
             var = IntVar()
             ttk.Checkbutton(self.frame_JSON_View.interior, text=str(self.email_groups_list_editor[i]), variable =var, onvalue=1, offvalue=0).pack(side=TOP, anchor='w', expand=True)
             self.vars_editor.append(var)
-           
+
+    
     def HandleRadioButton(self):
         # 1 clear the canvas. 
         self.frame_JSON_View.destroy()
@@ -377,12 +378,23 @@ class TemplateEditor:
         template = ''
         self.template_json_data = ''
         _templateChoice = self.combobox_box_Template_EGM.get()
+        
         if _templateChoice in self.generateTemplateList():
+        
             self.template_json_data = self.readEmailTemplate(_templateChoice) # Read Template Data and return the JSON data object
         else:
             print("could not read file: " + _templateChoice)
         
-        self.generateEmailGroupsEditor()
+        self.generateEmailGroupsEditor()     
+        mode = ''
+        if self.vars_editor_rb_mode_editor.get() == 1: 
+            mode = "SYS"
+        elif self.vars_editor_rb_mode_editor.get() == 2: 
+            mode = "EGM"
+        else:
+            mode = "OTHER" 
+            
+        self.updateCheckboxes(self.template_json_data, mode)
         
         self.to_address_list = self.template_json_data['Email Template']['to']
         self.cc_address_list = self.template_json_data['Email Template']['cc']
@@ -397,7 +409,7 @@ class TemplateEditor:
         self.text_SUBJECT.insert(0, self.template_subject)
 
         self.text_JSONoutput.insert(1.0,json.dumps(self.template_json_data, indent=4, sort_keys=True, separators=(',',':'))) 
-        
+
     def generateEmailGroupsEditor(self): 
         self.email_groups_list_editor = list() 
         if self.vars_editor_rb_mode_editor.get() == 1: #  EGM mode 
@@ -419,6 +431,27 @@ class TemplateEditor:
  
         self.email_groups_list_editor.sort()
     
+    def updateCheckboxes(self, json_data, mode):
+        template_to = json_data['Email Template']['to']
+        template_cc = json_data['Email Template']['cc']
+        template_bcc = json_data['Email Template']['bcc']
+
+        address_list = [template_to, template_cc, template_bcc] # same
+                      
+        # apply To/CC/BCC Details 
+        for i in range(0, len(address_list)): 
+            for email_group in address_list[i]:
+                
+                try:
+                    index = self.email_groups_list_editor.index(email_group)
+                    if mode == "SYS": 
+                        self.vars[index].set(1)
+                    elif mode == "EGM":
+                        self.vars_egm[index].set(1)   
+                except:  # handle the index error exception nicely
+                    e = sys.exc_info()[0]
+                    print("WARNING! Index Error while trying to set cc: Checkbox options for: '" + str(email_group) + "'. Try selecting 'All' for cc: Options or Check your template for correct Email Groups")
+
     
 def main():
     app = TemplateEditor()

@@ -2,25 +2,41 @@
 
 import webbrowser
 import json
-import os, sys
-import MailtoManage
+import os
+import sys
+import subprocess
 import TemplateEditor
 import tkinter as tk
 import getpass
+import io
 
 from tkinter import *
 from tkinter import messagebox
 from tkinter import ttk
 from datetime import datetime
 from urllib.parse import quote
+from mailtodata import * 
+from MailtoManage import MailtoManage
 
 # v0.4b - fixes non re-initialization of the body and subject variables after pressing "Clear Form" button
 # v0.5 - Adds To: and Bcc: options, Now has Template Generation within the form. 
 # v0.5a - Adds Refresh Template Button to both Systems and Other pages
+# v0.6 - 
+# v0.6a - Fixes launching of other helper scripts from within mailto.py
+#       - backups of lookup JSON file
+# v0.6b - Adds a Menu Item to display the URL link to click on.
+# v0.6c - Adds a Menu Item to copy_recipients_to_clipboard
+#       - Changed reference from FM14 to INET
+#       - Added checks for template being selected
+# v0.7  - Added version display of emaildata.json 
+#       - Added option to disable hashing of emaildata.json and lookup
 
-VERSION = "0.5a"
+VERSION = "0.7"
 DEFAULT_SUBJECT = "[ENTER EMAIL SUBJECT]"
 DEFAULT_BODY = "[This is an output email from 'mailto' script!]\n\n\n"
+DEFAULT_COMBO_TEXTBOX = '1. Select a Template...'
+
+USE_ENCODED_DATA = False
 
 # Do not make changes to this, this is default data and is used to 
 # re-create the emaildata.json file if one is not already available in the 
@@ -66,79 +82,198 @@ class ScrollableFrame(tk.Frame):
 
 class mailto:
 
-    # Constructor
     def __init__(self):
-        self.pathtotemplates = "templates/"
+        self.urlstr = ''
+        self.path_to_templates = "templates/"
         self.template_subject = DEFAULT_SUBJECT
         self.template_body = DEFAULT_BODY
-        #self.bccSavedString = ""
-        #self.ccSavedString = ""
-        self.filename = "emaildata.json"
+
+        if USE_ENCODED_DATA: 
+            self.filename = "emaildata_v2.json"
+            self.filename_emaildata_lookup_file = "emaildata_lookup.json"
+            self.email_lookup_table = self.ReadJSONfile(filename_emaildata_lookup_file)
+        else: 
+            self.filename = "emaildata.json"
+
         self.root = tk.Tk()       
+        self.nb = ttk.Notebook(self.root)
        
         menubar = tk.Menu(self.root)
         filemenu = tk.Menu(menubar, tearoff=0)
         optionmenu = tk.Menu(menubar, tearoff=0)
 
         menubar.add_cascade(label="File", menu=filemenu)
-        menubar.add_cascade(label="Option", menu=optionmenu)
-        optionmenu.add_command(label="Manage Email Groups...", command=self.MenuBar_Manage_EmailGroup) # start this script now. 
-        optionmenu.add_command(label="Backup Email File...", command=self.Backup_EmailFile) # start this script now. 
-        #optionmenu.add_command(label="Template Editor...", command=self.Launch_TemplateEditor) # start this script now. 
-        filemenu.add_command(label="Exit", command=self.root.destroy)
+        menubar.add_cascade(label="Options", menu=optionmenu)
+        #optionmenu.add_command(label="Launch MailtoManage Group Editor...", command=self.MenuBar_Manage_EmailGroup) 
+        optionmenu.add_command(label="Backup Email Group JSON files...", command=self.Backup_EmailFile) 
+        #optionmenu.add_command(label="Display Mailto URL string...", command=self.Display_URL)
+        optionmenu.add_command(label="Copy mailto recipients to clipboard...", command=self.copy_recipients_to_clipboard)        
+        optionmenu.add_command(label="Goto iNET FM14...", command=self.OpeniNET)        
+        optionmenu.add_command(label="Display iNET FM14: Storage Format...", command=self.DisplayiNETStorageFormat)                
+        filemenu.add_command(label="Exit mailto script", command=self.root.destroy)
         
         self.root.config(menu=menubar)
         self.data = self.ReadJSONfile(self.filename)  
+        
         self.setupEGM_Page()
         self.setupOther_Page()
         self.setupSystems_Page()
         self.root.mainloop()    
 
-    def Launch_TemplateEditor(self):
-        TemplateEditor.TemplateEditor()
 
+    def OpeniNET(self): 
+        url = 'https://inet-olgr.justice.qld.gov.au/display/TECH/Contact+Lists'
+        webbrowser.open_new(url)
+
+    def DisplayiNETStorageFormat(self): 
+        url = 'https://inet-olgr.justice.qld.gov.au/plugins/viewstorage/viewpagestorage.action?pageId=48334101'
+        webbrowser.open_new(url)
+
+    def copy_recipients_to_clipboard(self):
+        key = self.nb.tab(self.nb.select(), "text").upper()
+        print(key, self.urlstr)
+        # self.generateEmail(key.upper()) # self.urlstr update
+
+        recipients = ''
+        cc = ''
+        bcc = '' 
+        
+        if key == "EGM":
+            recipients = self.text_TOoutput_EGM.get(1.0, END)
+            cc = self.text_CCoutput_EGM.get(1.0, END)
+            bcc = self.text_BCCoutput_EGM.get(1.0, END)
+
+            subject = self.template_subject
+            body = self.template_body
+
+            template = self.combobox_box_Template_EGM.get()
+                
+        elif key == "OTHER":
+            recipients = self.text_TOoutput_OTHER.get(1.0, END)
+            cc = self.text_CCoutput_OTHER.get(1.0, END)
+            bcc = self.text_BCCoutput_OTHER.get(1.0, END)
+            
+            subject = self.template_subject
+            body = self.template_body
+
+            template = self.combobox_box_Template_OTHER.get()
+            
+        elif key == "SYSTEMS":
+            recipients = self.text_TOoutput_SYS.get(1.0, END)
+            cc = self.text_CCoutput_SYS.get(1.0, END)
+            bcc = self.text_BCCoutput_SYS.get(1.0, END)
+            
+            subject = self.template_subject
+            body = self.template_body
+        
+            template = self.combobox_box_Template_SYS.get()
+
+        if template.strip() == DEFAULT_COMBO_TEXTBOX: 
+            userChoice = messagebox.showwarning("No recipients", "Please select a template and try again.\n\n")
+        else: 
+            email_recipients = "to: " + recipients + "\n\n" + "cc: " + cc + "\n\n" + "bcc: " + bcc + "\n\n"
+
+            # copy urlstr to clip board
+            self.root.clipboard_clear() 
+            self.root.clipboard_append(email_recipients)
+            self.root.update()
+
+            userChoice = messagebox.showinfo("Copied Recipients to Clipboard", "The following has been copied into your clipboard: CTRL-V away!\n\n" + email_recipients)
+
+    def Display_URL(self): 
+        # messagebox.showinfo("URL string", self.urlstr)
+
+        key = self.nb.tab(self.nb.select(), "text")
+        if key == 'SYSTEMS': 
+            self.generateEmail('SYS') # self.urlstr update
+        else: 
+            self.generateEmail(key.upper()) # self.urlstr update
+
+        fname = 'link.html'
+        with open(fname, 'w+') as f_out:
+           make_list = '<li><a href="{}">Click To Send Create Mail</a></li>'.format(self.urlstr)
+           f_out.write('{}\n'.format(make_list))
+
+        os.startfile(fname)
+
+    def Launch_TemplateEditor(self):
+        
+        if os.name == 'nt': 
+            subprocess.Popen(['TemplateEditor.pyw'])
+        elif os.name == 'posix': 
+            subprocess.Popen(['python3', 'TemplateEditor.py'])        
+        
+        
     def MenuBar_Manage_EmailGroup(self):
-        MailtoManage.MailtoManage()
+        MailtoManage() 
+        
+        if os.name == 'nt': 
+            subprocess.Popen(['py MailtoManage.py'])
+        elif os.name == 'posix': 
+            subprocess.Popen(['python3', 'MailtoManage.py'])        
 
     def Backup_EmailFile(self):
+    
+        # backup email groups
         if (os.path.isfile(self.filename)): 
             with open(self.filename, 'r') as json_file:
                 data = json.load(json_file)
                 unix_timestamp = datetime.now().timestamp()
-                output_backup_fname = "backup/" +self.filename+ "_" + str(unix_timestamp) + "_" + getpass.getuser() +".backup"
+                output_backup_fname = "backup/" + self.filename + "_" + str(unix_timestamp) + "_" + getpass.getuser() +".backup"
                 with open(output_backup_fname,'w+') as json_file:
                     json.dump(data, json_file, sort_keys=True, indent=4, separators=(',',':'))
             messagebox.showinfo("Backup Complete", "Backup of " + self.filename + ", has been saved as: " + output_backup_fname)
         else: 
-            print(json_filename + " cannot be found. Generating default file...")
-            sys.exit(2) # exit out cleanly. 
+            print(json_filename + " cannot be found")
+            # sys.exit(2) # exit out cleanly. 
+            
+        # backup email lookup table
+        if USE_ENCODED_DATA: 
+            if (os.path.isfile(self.filename_emaildata_lookup_file)): 
+                with open(self.filename_emaildata_lookup_file, 'r') as json_file:
+                    data = json.load(json_file)
+                    unix_timestamp = datetime.now().timestamp()
+                    output_backup_fname = "backup/" +self.filename_emaildata_lookup_file+ "_" + str(unix_timestamp) + "_" + getpass.getuser() +".backup"
+                    with open(output_backup_fname,'w+') as json_file:
+                        json.dump(data, json_file, sort_keys=True, indent=4, separators=(',',':'))
+                messagebox.showinfo("Backup Complete", "Backup of " + self.filename_emaildata_lookup_file + ", has been saved as: " + output_backup_fname)        
+            else: 
+                print(self.filename_emaildata_lookup_file + " cannot be found.")
+                # sys.exit(2) 
 
+    # modify such that the json_file is the hashed_email_addresses
+    # and this function will correctly map the expected email addresses to form 
+    # important to read json file as 'utf-8' encoding
     def ReadJSONfile(self, json_filename):
         data = ''
         if (os.path.isfile(json_filename)): 
-            with open(json_filename, 'r') as json_file:
+            with open(json_filename, 'r', encoding='utf8') as json_file:
                 data = json.load(json_file)
         else:
             print(json_filename + " cannot be found. Generating default file...")
-            with open(json_filename, 'w') as json_file:
-                json.dump(DEFAULT_EMAIL_DATA, json_file, sort_keys=True, indent=4, separators=(',',':')) # write to disk. 
-            sys.exit(2) # exit out cleanly. 
+            #with open(json_filename, 'w') as json_file:
+            #    json.dump(DEFAULT_EMAIL_DATA, json_file, sort_keys=True, indent=4, separators=(',',':')) # write to disk. 
+            #sys.exit(2) # exit out cleanly. 
         return (data)
 
     def generateTemplateList(self, keyword):
-        template_file_list = os.listdir(self.pathtotemplates)
+        template_file_list = os.listdir(self.path_to_templates)
         output_file_list = list()
         for item in template_file_list:
             if item.startswith(keyword):
                 output_file_list.append(item)
-            
-        return output_file_list
+
+        sorted_filelist = list() # need to sort list in this way
+        for file in sorted(list(set(output_file_list))): 
+            sorted_filelist.append(file)
+                
+        return sorted_filelist
             
     def readEmailTemplate(self, template_filename):
         template = ''
         print("Template selected is: " + template_filename)
-        if (os.path.isfile(os.path.join(self.pathtotemplates, template_filename))):
-            with open(os.path.join(self.pathtotemplates, template_filename),'r') as template_file:
+        if (os.path.isfile(os.path.join(self.path_to_templates, template_filename))):
+            with open(os.path.join(self.path_to_templates, template_filename),'r') as template_file:
                 template = json.load(template_file)
         else:
             print (template_filename + " cannot be found. Exiting")
@@ -166,6 +301,12 @@ class mailto:
         return outputstr
 
     def generateEmail(self, key):
+        cc = ''
+        bcc = ''
+        recipients = ''
+        subject = ''
+        body = ''
+
         if key == "EGM":
             recipients = self.text_TOoutput_EGM.get(1.0, END)
             cc = self.text_CCoutput_EGM.get(1.0, END)
@@ -173,6 +314,8 @@ class mailto:
 
             subject = self.template_subject
             body = self.template_body
+
+            template = self.combobox_box_Template_EGM.get()
                 
         elif key == "OTHER":
             recipients = self.text_TOoutput_OTHER.get(1.0, END)
@@ -182,6 +325,8 @@ class mailto:
             subject = self.template_subject
             body = self.template_body
             
+            template = self.combobox_box_Template_OTHER.get()
+
         elif key == "SYS":
             recipients = self.text_TOoutput_SYS.get(1.0, END)
             cc = self.text_CCoutput_SYS.get(1.0, END)
@@ -189,22 +334,29 @@ class mailto:
             
             subject = self.template_subject
             body = self.template_body
-        
-        # urllib.parse.quote(subject), urllib.parse.quote(body)))
-        urlstr = ''
-        if len(cc) == 0:
-            if len(bcc) == 0:
-                urlstr = "mailto:%s?subject=%s&body=%s" % (quote(recipients), quote(subject), quote(body))
-            else:
-                urlstr = "mailto:%s?bcc=%s&subject=%s&body=%s" % (quote(recipients), quote(bcc), quote(subject), quote(body))
-        else: 
-            if len(bcc) == 0:
-                urlstr = "mailto:%s?cc=%s&subject=%s&body=%s" % (quote(recipients), quote(cc), quote(subject), quote(body))
-            else:
-                urlstr = "mailto:%s?cc=%s&bcc=%s&subject=%s&body=%s" % (quote(recipients), quote(cc), quote(bcc), quote(subject), quote(body))
 
-        if self.validateMailToStrLength(urlstr):
-            webbrowser.open(urlstr)
+            template = self.combobox_box_Template_SYS.get()
+
+        if template.strip() == DEFAULT_COMBO_TEXTBOX: 
+            userChoice = messagebox.showwarning("No recipients", "Please select a template and try again.\n\n")
+        else:         
+            # urllib.parse.quote(subject), urllib.parse.quote(body)))
+            urlstr = ''
+            if len(cc) == 0:
+                if len(bcc) == 0:
+                    urlstr = "mailto:%s?subject=%s&body=%s" % (quote(recipients), quote(subject), quote(body))
+                else:
+                    urlstr = "mailto:%s?bcc=%s&subject=%s&body=%s" % (quote(recipients), quote(bcc), quote(subject), quote(body))
+            else: 
+                if len(bcc) == 0:
+                    urlstr = "mailto:%s?cc=%s&subject=%s&body=%s" % (quote(recipients), quote(cc), quote(subject), quote(body))
+                else:
+                    urlstr = "mailto:%s?cc=%s&bcc=%s&subject=%s&body=%s" % (quote(recipients), quote(cc), quote(bcc), quote(subject), quote(body))
+
+            if self.validateMailToStrLength(urlstr):
+                webbrowser.open(urlstr)
+
+            self.urlstr = urlstr
 
     def validateMailToStrLength(self, arg):
         userChoice = bool
@@ -239,42 +391,16 @@ class mailto:
     def generateEmailStr_from_Group(self, email_group):
         data = self.ReadJSONfile(self.filename)
         outstr = ""
-        
         try:       
             for item in data[email_group]: 
+                if USE_ENCODED_DATA:
+                    item = self.email_lookup_table[item] # translate email hash to email address
                 outstr += item+";"
         except: 
             e = sys.exc_info()[0]
             print("WARNING! Index Error while retrieving email addresses from Email Group:'" + str(email_group) + "'. Please check your template for correct Email Groups.")
 
         return outstr
-
-    # def saveTemplate(self, to_groups, cc_groups, bcc_groups, mode):
-#         json_data = self.ReadJSONfile(self.filename)
-#         prompted_subject = DEFAULT_SUBJECT
-#         prompted_body = DEFAULT_BODY
-#                
-#         # Prompt to ask Subject Field w/defaults provided
-#         # Prompt to ask Body Field w/defaults provided
-#         
-#         SavedTemplate = { "title" : self.combobox_box_Template_EGM.get(),
-#                           "to" : to_groups,
-#                           "cc" : cc_groups,
-#                           "bcc" : bcc_groups,
-#                           "subject" : prompted_subject,
-#                           "body": DEFAULT_BODY }
-#         template = { "Email Template": SavedTemplate }
-#         
-#         #print(json.dumps(template, indent=4, sort_keys=False, separators=(',',':')))
-#         with open("templates/" + self.combobox_box_Template_EGM.get() + ".json", 'w') as json_file: 
-#             json.dump(template, json_file, sort_keys=True, indent=4, separators=(',',':')) # write to disk. 
-# 
-#         messagebox.showinfo("Saved New Template", "Template Name:\n\n" + self.combobox_box_Template_EGM.get() + ".json" + 
-#             "\n\nto: " + str(to_groups) + 
-#             "\n\ncc: " + str(cc_groups) + 
-#             "\n\nbcc:" + str(bcc_groups) + 
-#             "\n\nsubject: " + str(prompted_subject) + 
-#             "\n\nbody: " + str(prompted_body))
 
     def applyTemplate(self, json_data, mode):
         template_to = json_data['Email Template']['to']
@@ -314,13 +440,18 @@ class mailto:
             mytextbox_list[i].delete(1.0, END) 
             mytextbox_list[i].insert(1.0,self.uniqueAddresses(duplicates_string))
     
+    def lastModifiedDate(self, fname): 
+        lastmodified= os.stat(fname).st_mtime
+
+        # 2017-06-03 02:17:48.263740        
+        return datetime.fromtimestamp(lastmodified) 
+
     ############# GUI Related ################## 
     def setupEGM_Page(self):
-        self.root.wm_title("mailto v" + VERSION)
+        self.root.wm_title("mailto v" + VERSION + " - " + self.filename + " - Last Modified Date: " + str(self.lastModifiedDate(self.filename)))
         
         self.root.resizable(1,1)    
         self.root.focus_force()  
-        self.nb = ttk.Notebook(self.root)
         self.page1 = ttk.Frame(self.nb)
         self.page2 = ttk.Frame(self.nb)
         self.page3 = ttk.Frame(self.nb)
@@ -335,36 +466,26 @@ class mailto:
         # Combo Box for Template
         self.cbTemplate = StringVar()
         self.combobox_box_Template_EGM = ttk.Combobox(frame_Header, justify=LEFT, textvariable=self.cbTemplate, width = 60, state='normal')
-        #self.combobox_box_Template_EGM.pack(side = LEFT, padx=5, pady=5)
         self.combobox_box_Template_EGM.grid(row = 0, column=0, sticky = N, pady=5, padx=5)
-        self.combobox_box_Template_EGM.set('1. Select a Template...')
+        self.combobox_box_Template_EGM.set(DEFAULT_COMBO_TEXTBOX)
         self.combobox_box_Template_EGM['values'] =  self.generateTemplateList("EGM") # generate values based on Template List
         self.combobox_box_Template_EGM.bind('<<ComboboxSelected>>', self.handleComboBoxChanges_EGM)
 
         # Generate Email Button
         button_generate_email = ttk.Button(frame_Header, text = "2. Generate Email...", command = lambda: self.handleButtonPress('__gen_email_egm__'), width = 20)
         button_generate_email.grid(row = 0, column=1, sticky = N, pady=5, padx=5)
-        #.pack(side=LEFT, padx=5,pady=5)
 
         # Refresh Email Templates List Button
         button_refresh_templates_email = ttk.Button(frame_Header, text = "Refresh Template List", command = lambda: self.handleButtonPress('__refresh_email_list_egm__'), width = 20)
         button_refresh_templates_email.grid(row = 0, column=2, sticky = N, pady=5, padx=5)
-        #.pack(side=TOP, padx=5,pady=5)
         
-        # Save Template
-       #  button_save_template = ttk.Button(frame_Header, text = "Save Template", command = lambda: self.handleButtonPress('__save_template_egm__'), width = 20)
-#         button_save_template.grid(row = 1, column=1, sticky = N, pady=5, padx=5)
-        
-#         label_howto_templates = ttk.Label(frame_Header, text='To create "templates":\n1. Fill out a Template name in the "1. Select a Template..." field.\n2. Populate Email Fields, using the Apply To:, Apply cc:, and Apply bcc: buttons\n3. Press "Save Template" button.\n4. To view newly created template in the template list: Press "Refresh Template List button."', foreground="red")
-#         label_howto_templates.grid(row = 2, columnspan=2, sticky = W, pady=5, padx=5)
-     
         self.frame_Address = ttk.Frame(self.page1)
         self.frame_Address.pack(side=TOP, fill=BOTH, expand = True, padx = 5, pady=5)
         self.frame_Address.config(relief = RIDGE, borderwidth = 0)
         
         frame_AddressTextArea = ttk.Frame(self.frame_Address)
         frame_AddressTextArea.pack(side=LEFT, fill=BOTH, expand = True, padx = 5, pady=5)
-        frame_AddressTextArea.config(relief = RIDGE, borderwidth = 0)
+        frame_AddressTextArea.config(relief = FLAT, borderwidth = 0)
         
         # Text Area for TO: Addresses
         frame_TOtextarea_EGM = ttk.Labelframe(frame_AddressTextArea, text="To Details:")
@@ -418,10 +539,9 @@ class mailto:
         Label(self.page1, text="Select Filter: ").pack(side = RIGHT, anchor="e")
         
         ## cc: Options
-        #self.refresh_Email_Groups_List_EGM()
         self.generateEmailGroups("EGM")
 
-        ttk.Label(self.frame_Address, text="Email Groups: Refer FM14 for Details.", foreground="red").pack(side=TOP, anchor='s', fill =Y, expand = False, pady=5, padx=5)
+        ttk.Label(self.frame_Address, text="Email Groups: Refer INET for Details.", foreground="red", font=("Arial", 14)).pack(side=TOP, anchor='s', fill =Y, expand = False, pady=5, padx=5)
         self.DrawCCCheckButtons_EGM() # Checkboxes
         
         #frame_Header
@@ -455,7 +575,7 @@ class mailto:
         ################ Bottom FRAME ##############
         frame_bottombuttons = ttk.Frame(self.page1)
         frame_bottombuttons.pack(side=BOTTOM, fill=X, expand = False,)
-        frame_bottombuttons.config(relief = RIDGE, borderwidth = 0)    
+        frame_bottombuttons.config(relief = FLAT, borderwidth = 0)    
            
          # Button To Clear To: Details
         button_clearform_EGM= ttk.Button(frame_bottombuttons, text = "Clear Form", width = 20,command = lambda: self.handleButtonPress('__clear_form_egm__'))                                             
@@ -466,8 +586,6 @@ class mailto:
         self.nb.add(self.page3, text="Other")
         self.nb.pack(expand=1, fill="both")
         
-
-    
     def setupSystems_Page(self):
         main_top_frame = ttk.Frame(self.page2)
         main_top_frame.pack(side=TOP, fill=X, expand = False)
@@ -480,7 +598,7 @@ class mailto:
         self.cbTemplate_SYS = StringVar()
         self.combobox_box_Template_SYS = ttk.Combobox(frame_Header, justify=LEFT, textvariable=self.cbTemplate_SYS, width = 60, state='readonly')
         self.combobox_box_Template_SYS.pack(side = LEFT, fill=X, padx=5, pady=5)
-        self.combobox_box_Template_SYS.set('1. Select Template...')
+        self.combobox_box_Template_SYS.set(DEFAULT_COMBO_TEXTBOX)
         self.combobox_box_Template_SYS['values'] =  self.generateTemplateList("SYS") # generate values based on Template List
         self.combobox_box_Template_SYS.bind('<<ComboboxSelected>>', self.handleComboBoxChanges_SYS)
 
@@ -498,7 +616,7 @@ class mailto:
         
         frame_AddressTextArea = ttk.Frame(self.frame_Address_SYS)
         frame_AddressTextArea.pack(side=LEFT, fill=BOTH, expand = True, padx = 5, pady=5)
-        frame_AddressTextArea.config(relief = RIDGE, borderwidth = 0)
+        frame_AddressTextArea.config(relief = FLAT, borderwidth = 0)
         
         # Text Area for TO: Addresses
         frame_TOtextarea_SYS = ttk.Labelframe(frame_AddressTextArea, text="To: Details:")
@@ -553,10 +671,9 @@ class mailto:
         Label(self.page2, text="Select Filter: ").pack(side = RIGHT, anchor="e")
     
         ## cc: Options
-#        self.refresh_Email_Groups_List_SYS()
         self.generateEmailGroups("SYS")
 
-        ttk.Label(self.frame_Address_SYS, text="Email Groups: Refer FM14 for Details.", foreground="red").pack(side=TOP, anchor='s', fill =Y, expand = False, pady=5, padx=5)
+        ttk.Label(self.frame_Address_SYS, text="Email Groups: Refer FM14 for Details.", font=("Arial", 18), foreground="red").pack(side=TOP, anchor='s', fill =Y, expand = False, pady=5, padx=5)
         self.DrawCCCheckButtons_SYS()
        
         #frame_Header
@@ -590,7 +707,7 @@ class mailto:
         ################ Bottom FRAME ##############
         frame_bottombuttons = ttk.Frame(self.page2)
         frame_bottombuttons.pack(side=BOTTOM, fill=X, expand = False)
-        frame_bottombuttons.config(relief = RIDGE, borderwidth = 0)       
+        frame_bottombuttons.config(relief = FLAT, borderwidth = 0)       
          # Button To Clear To: Details
         button_ADD_contacts= ttk.Button(frame_bottombuttons, text = "Clear Form", width = 20,command = lambda: self.handleButtonPress('__clear_form_sys__'))                                             
         button_ADD_contacts.grid(row=0, column=1,  sticky='s',  padx=5, pady=5)
@@ -604,7 +721,7 @@ class mailto:
         self.cbTemplate_OTHER = StringVar()
         self.combobox_box_Template_OTHER = ttk.Combobox(frame_Header, justify=LEFT, textvariable=self.cbTemplate_OTHER, width = 40, state='readonly')
         self.combobox_box_Template_OTHER.pack(side = LEFT, fill=X, padx=5, pady=5)
-        self.combobox_box_Template_OTHER.set('1. Select Template...')
+        self.combobox_box_Template_OTHER.set(DEFAULT_COMBO_TEXTBOX)
         self.combobox_box_Template_OTHER['values'] =  self.generateTemplateList("OTHER") # generate values based on Template List
         self.combobox_box_Template_OTHER.bind('<<ComboboxSelected>>', self.handleComboBoxChanges_OTHER)
 
@@ -618,7 +735,7 @@ class mailto:
         
         frame_AddressTextArea = ttk.Frame(self.page3)
         frame_AddressTextArea.pack(side=TOP, fill=BOTH, expand = True, padx = 5, pady=5)
-        frame_AddressTextArea.config(relief = RIDGE, borderwidth = 0)
+        frame_AddressTextArea.config(relief = FLAT, borderwidth = 0)
         
         # Text Area for TO: Addresses
         frame_TOtextarea_OTHER = ttk.Labelframe(frame_AddressTextArea, text="To Details:")
@@ -659,7 +776,7 @@ class mailto:
         ################ Bottom FRAME ##############
         frame_bottombuttons = ttk.Frame(self.page3)
         frame_bottombuttons.pack(side=BOTTOM, fill=X, expand = False)
-        frame_bottombuttons.config(relief = RIDGE, borderwidth = 0)       
+        frame_bottombuttons.config(relief = FLAT, borderwidth = 0)       
          # Button To Clear To: Details
         button_ADD_contacts= ttk.Button(frame_bottombuttons, text = "Clear Form", width = 20,command = lambda: self.handleButtonPress('__clear_form_other__'))                                             
         button_ADD_contacts.grid(row=0, column=1,  sticky='s',  padx=5, pady=5)
@@ -688,18 +805,7 @@ class mailto:
         self.frame_CCframe_SYS.config(relief = RIDGE, borderwidth = 1)
         self.frame_CCframe_SYS.pack(side = RIGHT, fill=Y, expand = False)
         self.DrawCCCheckButtons_SYS()
-            
-#         if self.vars_rb_mode_sys.get() == 1: #  SYS mode 
-#             #self.refresh_Email_Groups_List_SYS()
-#             self.frame_CCframe_SYS = ScrollableFrame(self.frame_Address_SYS)
-#             self.frame_CCframe_SYS.config(relief = RIDGE, borderwidth = 1)
-#             self.frame_CCframe_SYS.pack(side = RIGHT, fill=Y, expand = False)
-#             self.DrawCCCheckButtons_SYS()
-#         else: # All items
-#             self.email_groups_list = []            
-#             for k,v in self.data.items():
-#                 self.email_groups_list.append(k)
-        #self.email_groups_list.sort()
+        
     
     def HandleRadioButton_EGM(self):
         # 1 clear the canvas. 
@@ -709,52 +815,10 @@ class mailto:
         self.frame_CCframe_EGM.config(relief = RIDGE, borderwidth = 1)
         self.frame_CCframe_EGM.pack(side = RIGHT, fill=Y, expand = False)
         self.DrawCCCheckButtons_EGM()
-        
-        # 2. redraw the checkbutton options  
-#        if self.vars_rb_mode.get() == 1: #  EGM mode 
-            #self.refresh_Email_Groups_List_EGM()
-            # Need to re-create the "destroyed frames"
-            # self.frame_CCframe_EGM = ScrollableFrame(self.frame_Address)
-#             self.frame_CCframe_EGM.config(relief = RIDGE, borderwidth = 1)
-#             self.frame_CCframe_EGM.pack(side = RIGHT, fill=Y, expand = False)
-#             self.DrawCCCheckButtons_EGM() # redraw the checkbuttons
-                
-#       else: # All items
-#            self.generateEmailGroups()
-#            for item in self.email_groups_list:
-#                print(str(item))
-            
-            # self.email_groups_list = list()            
-#             for k,v in self.data.items():
-#                 self.email_groups_list.append(k) # list all items
-#             
-#             self.email_groups_list.sort()
-            
-
-    
-#     def refresh_Email_Groups_List_EGM(self):
-#         self.email_groups_list = list()
-#         #Generate the Email Group List used for checkboxes
-#         for k,v in self.data.items(): # set defaults
-#             if str(k).startswith("SYS"):
-#                 pass # ignore System related stuff. 
-#             else:
-#                 self.email_groups_list.append(k)
-#         self.email_groups_list.sort()
-# 
-#     def refresh_Email_Groups_List_SYS(self):
-#         self.email_groups_list = list()
-#         #Generate the Email Group List used for checkboxes
-#         for k,v in self.data.items(): # set defaults
-#             if str(k).startswith("EGM"):
-#                 pass # ignore System related stuff. 
-#             else:
-#                 self.email_groups_list.append(k)
-#         self.email_groups_list.sort()        
+               
 
     def handleButtonPress(self, event):
         if event == '__button_cc_apply_sys__': 
-            #self.refresh_Email_Groups_List_SYS()
             self.generateEmailGroups("SYS")
             self.text_CCoutput_SYS.delete(1.0, END) # Clear the field
             for i in range(len(self.vars)):
@@ -762,7 +826,6 @@ class mailto:
                     self.text_CCoutput_SYS.insert(END,self.generateEmailStr_from_Group(self.email_groups_list[i]))
         
         elif event == '__button_to_apply_sys__':
-            #self.refresh_Email_Groups_List_SYS()
             self.generateEmailGroups("SYS")
             self.text_TOoutput_SYS.delete(1.0, END) # clear
             for i in range(len(self.vars)):
@@ -770,7 +833,6 @@ class mailto:
                     self.text_TOoutput_SYS.insert(END,self.generateEmailStr_from_Group(self.email_groups_list[i])) 
         
         elif event == '__button_bcc_apply_sys__':
-            #self.refresh_Email_Groups_List_SYS()
             self.generateEmailGroups("SYS")
             self.text_BCCoutput_SYS.delete(1.0, END) # clear
             for i in range(len(self.vars)):
@@ -779,7 +841,6 @@ class mailto:
                                      
         elif event == '__button_cc_apply_egm__':
             self.cc_address_list = list()
-            #self.refresh_Email_Groups_List_EGM()
             self.generateEmailGroups("EGM")
             self.text_CCoutput_EGM.delete(1.0, END) # Clear the field
             for i in range(len(self.vars_egm)):
@@ -789,7 +850,6 @@ class mailto:
              
         elif event == '__button_to_apply_egm__':
             self.to_address_list = list()
-            #self.refresh_Email_Groups_List_EGM()
             self.generateEmailGroups("EGM")
 
             self.text_TOoutput_EGM.delete(1.0, END) # clear
@@ -801,7 +861,6 @@ class mailto:
 
         elif event == '__button_bcc_apply_egm__':
             self.bcc_address_list = list()
-            #self.refresh_Email_Groups_List_EGM()
             self.generateEmailGroups("EGM")
             
             self.text_BCCoutput_EGM.delete(1.0, END) # clear
@@ -813,19 +872,19 @@ class mailto:
         elif event == '__button_cc_clear_sys__':
             for i in range(len(self.vars)):
                 self.vars[i].set(0)
-            self.text_CCoutput_SYS.delete(1.0, END) # Clear the field
+            self.text_CCoutput_SYS.delete(1.0, END) 
         elif event == '__button_to_clear_sys__':
             for i in range(len(self.vars)):
                 self.vars[i].set(0)
-            self.text_TOoutput_SYS.delete(1.0, END) # Clear the field
+            self.text_TOoutput_SYS.delete(1.0, END) 
         elif event == '__button_bcc_clear_sys__':
             for i in range(len(self.vars)):
                 self.vars[i].set(0)
-            self.text_BCCoutput_SYS.delete(1.0, END) # Clear the field
+            self.text_BCCoutput_SYS.delete(1.0, END) 
         elif event == '__button_cc_clear_egm__':
             for i in range(len(self.vars_egm)):
                 self.vars_egm[i].set(0)
-            self.text_CCoutput_EGM.delete(1.0, END) # Clear the field
+            self.text_CCoutput_EGM.delete(1.0, END) 
         elif event == '__button_to_clear_egm__':
             for i in range(len(self.vars_egm)):
                 self.vars_egm[i].set(0)
@@ -835,18 +894,18 @@ class mailto:
                 self.vars_egm[i].set(0)
             self.text_BCCoutput_EGM.delete(1.0, END)         
         elif event == '__clear_form_sys__':
-            self.text_TOoutput_SYS.delete(1.0, END) # Clear the field
-            self.text_CCoutput_SYS.delete(1.0, END) # Clear the field
-            self.text_BCCoutput_SYS.delete(1.0, END) # Clear the field
+            self.text_TOoutput_SYS.delete(1.0, END) 
+            self.text_CCoutput_SYS.delete(1.0, END) 
+            self.text_BCCoutput_SYS.delete(1.0, END)
             self.combobox_box_Template_SYS.set("1. Select a Template...")       
             self.handleButtonPress("__button_cc_clear_sys__")
             self.template_subject = DEFAULT_SUBJECT
             self.template_body = DEFAULT_BODY
             self.HandleRadioButton_SYS()
         elif event == '__clear_form_egm__':
-            self.text_TOoutput_EGM.delete(1.0, END) # Clear the field
-            self.text_CCoutput_EGM.delete(1.0, END) # Clear the field
-            self.text_BCCoutput_EGM.delete(1.0, END) # Clear the field
+            self.text_TOoutput_EGM.delete(1.0, END) 
+            self.text_CCoutput_EGM.delete(1.0, END) 
+            self.text_BCCoutput_EGM.delete(1.0, END) 
             self.combobox_box_Template_EGM.set("1. Select a Template...")       
             self.handleButtonPress("__button_cc_clear_egm__")
             self.template_subject = DEFAULT_SUBJECT
@@ -864,11 +923,11 @@ class mailto:
         elif event == '__gen_email_egm__':
             self.generateEmail("EGM")
         elif event == '__refresh_email_list_egm__':
-            self.combobox_box_Template_EGM['values'] =  self.generateTemplateList("EGM") # generate values based on Template List
+            self.combobox_box_Template_EGM['values'] =  self.generateTemplateList("EGM") 
         elif event == '__refresh_email_list_sys__':
-            self.combobox_box_Template_SYS['values'] =  self.generateTemplateList("SYS") # generate values based on Template List
+            self.combobox_box_Template_SYS['values'] =  self.generateTemplateList("SYS") 
         elif event == '__refresh_email_list_other__':
-            self.combobox_box_Template_OTHER['values'] =  self.generateTemplateList("OTHER") # generate values based on Template List
+            self.combobox_box_Template_OTHER['values'] =  self.generateTemplateList("OTHER") 
         elif event == '__save_template_egm__':
             self.saveTemplate(self.to_address_list,  self.cc_address_list,  self.bcc_address_list, "EGM")
 
