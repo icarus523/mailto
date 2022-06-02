@@ -3,7 +3,7 @@ Script for handling Email Groups via JSON objects while utilising custom user em
 
 An internal request to handle email groups that currently isn't supported by OLGR's current mail system.  
 Glorified mailto: URI link handler  
-This script has four utility scripts: 
+This script has three utility scripts: 
 * MailtoManage.py - Main utility to manage email groups. 
 * TemplateEditor.py - Utility to generate Email Templates for used with the mailto.py script.  
 * mailtodata.py - Utility to convert previous `emaildata.json` to `emaildata_v2.json` and `emaildata_lookup.json` files
@@ -16,8 +16,12 @@ Hashing of Email Groups for added security has also been added to prevent unauth
 
 ## How to Use
 
-You just double-click the mailto.py file and provided your Operating System is configured to launch python scripts a GUI will be presented to you. 
+You just double-click the `mailto.pym` file and provided your Operating System is configured to launch python scripts a GUI will be presented to you. 
 
+Otherwise in Windows type: 
+````
+py mailto.pym
+````
 Follow the "Quick HOWTO" instructions described above the screen.  
 
 The "tabs": "EGM", "Systems" and "Other" represents the workflow of email templates Note: The "Other" tab is for email templates, which doesn't fit with either EGM/Systems. 
@@ -27,6 +31,8 @@ i.e. the addressee isn't exactly a client.
 
 Best way of creating a template is to copy a new one, and replace the contents with 
 the appropriate changes using the TemplateEditor.py script.  
+
+Otherwise use the `TemplateEditor.py` script and design the template. This allows you to set email subject and body. 
 
 ## Restrictions with Creating New Templates
     1. The first word of the file name, will indicate where the template can be used. 
@@ -87,15 +93,20 @@ the appropriate changes using the TemplateEditor.py script.
         }
 
 
-## Managing Email Group (Adding/Removing Email Addresses to Email Groups):
+## Managing Email Group (Getting Password Access to Manage Email Groups):
 
-Use the built in tool for "Manage Group Emails". 
-For added security the email use of the "MailtoManage.py" is now password protected, this is to ensure that only Authorised users are capable of changing email groups. To add new passwords, you need to modify the MailtoManage.py script and add the result of the following python3 code to the `valid_password` list variable.: 
+For added security, the use of the `MailtoManage.py` is now password protected.  This is to ensure that only Authorised users are capable of changing details of an email group. To add a new authorised user (a new password): you will need to modify the `MailtoManage.py` script (i.e. source code) and add the result of the following `python3` code to the `VALID_PASSWORD` list variable: 
 
 ```
 clear_text_password = "supersecret2018!"
 your_password = hashlib.sha256(clear_text_password.encode()).hexdigest()
 ```
+The output of the above code is to be appended to the following list: 
+
+```
+VALID_PASSWORDS = ["63f6a3533a1d65ea4cc016ef2371c09bce7a00b3d4495e2cf6eec18d4083e1f0", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"]
+```
+
 This keeps honest people honest. 
 
 Further more, the email database file (emaildata_v2.json), is also now signed for each email group. This prevents unauthorised changing of the email groups without triggering a warning that hashes doesn't match. E.g.
@@ -110,13 +121,43 @@ Further more, the email database file (emaildata_v2.json), is also now signed fo
     },
 ```
 
+### Important: Do not attempt to edit any of the JSON files used, unless you know what you're doing as any errors will prevent the script from functioning correctly. This is the reason why hashing of email groups, email addresses and password restrictions has been implemented. 
+
 ## Adding a New Email Group. 
 
-Use the ManagetoManage.py script: Enter a new "Group Name" in the DropDown Menu and add email addresses directly. Click "Save Changes"
-These can now be accessed with the "OTHER" tab templates. The "new groups created will be accessed dynamically. 
+Use the `MailtoManage.py` script: 
+
+* Enter a new "Group Name" in the DropDown Menu and add email addresses directly.
+* Each email address must be on a separate line
+* No commas, semi-colons, etc
+* Click `Save Changes` and `Refresh` buttons
+
+The newly created groups created will be accessed dynamically. 
 
 Tips: If you want the email groups to be available in the EGM/Systems Tab window in the mailto.py script then pre-pend "EGM" or "SYSTEMS" respectively to the Email Group Name. 
 
 ## Removing an Exisiting Email Group
 
-Use the MailtoManage.py script: Select the Email Group you want to remove. Press "Delete Email Group". 
+Use the MailtoManage.py script: 
+
+* Select the Email Group you want to remove. 
+* Press `Delete Email Group` button. 
+* Press `Refresh` Button to confirm that the email group has been removed. 
+
+## Maintaining Emails within Email Groups
+
+If a person's email address is no longer being used (i.e. left their company), they should be removed using the MailtoManage.py script using the following method: 
+
+Use the MailtoManage.py script to remove an Email Address: 
+
+* Select the Email Group that the user exists in. 
+* Remove email address from the Email Group 
+* Click `Save Changes` and `Refresh` buttons
+* Repeat for any other email groups the email address might be part of
+
+Use the MailtoManage.py script to add an Email Address to an email group: 
+
+* Select the Email Group that you want the user to be part of. 
+* Add the email address into the Email Group, note that the script will strip out unnecessary strings of characters which do not form part of an email address in the following format: `username@domain`
+* Click `Save Changes` and `Refresh` buttons
+* Confirm that the addition of the email address has been made

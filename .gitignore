@@ -1,0 +1,9 @@
+
+*.pyc
+*.json
+*.sublime-project
+*.sublime-workspace
+*.html
+*.backup
+/mailto-venv
+download_html.py
