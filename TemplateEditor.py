@@ -54,7 +54,7 @@ class TemplateEditor:
         self.pathtotemplates = "templates/"
         self.template_subject = DEFAULT_SUBJECT
         self.template_body = DEFAULT_BODY
-        self.filename = "emaildata_v2.json"
+        self.filename = "emaildata.json"
         self.root = tk.Tk()       
         self.to_address_list = list()
         self.cc_address_list = list()
@@ -109,7 +109,7 @@ class TemplateEditor:
         cc_groups = list(set(cc_groups))
         bcc_groups = list(set(bcc_groups))
         
-        SavedTemplate = { "title" : self.combobox_box_Template_EGM.get(),
+        SavedTemplate = { "title" : self.combobox_box_Template_EGM.get()[:-5],
                           "to" : to_groups,
                           "cc" : cc_groups,
                           "bcc" : bcc_groups,
@@ -118,10 +118,10 @@ class TemplateEditor:
         template = { "Email Template": SavedTemplate }
         
         #print(json.dumps(template, indent=4, sort_keys=False, separators=(',',':')))
-        with open("templates/" + self.combobox_box_Template_EGM.get() + ".json", 'w') as json_file: 
+        with open("templates/" + self.combobox_box_Template_EGM.get()[:-5] + ".json", 'w') as json_file: 
             json.dump(template, json_file, sort_keys=True, indent=4, separators=(',',':')) # write to disk. 
 
-        messagebox.showinfo("Saved New Template", "Template Name:\n\n" + self.combobox_box_Template_EGM.get() + ".json" + 
+        messagebox.showinfo("Saved New Template", "Template Name:\n\n" + self.combobox_box_Template_EGM.get() + 
             "\n\nto: " + str(to_groups) + 
             "\n\ncc: " + str(cc_groups) + 
             "\n\nbcc:" + str(bcc_groups) + 
